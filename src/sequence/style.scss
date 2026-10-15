@@ -76,6 +76,9 @@ img.l2dsis-sequence__poster {
 // =============================================================================
 
 .l2dsis-sequence__content {
+	// 中の最初のブロックの margin-top が箱の外へ抜け出し(マージンの相殺), 箱ごと押し下げられて
+	// 画面の下が隠れるのを防ぐ(【A】の実測: 見出しの 33px ぶん下にずれていた).
+	display: flow-root;
 	position: relative;
 	z-index: 1;
 	height: 100%;

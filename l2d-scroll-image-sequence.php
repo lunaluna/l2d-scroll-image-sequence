@@ -126,15 +126,20 @@ function l2dsis_get_breakpoint() {
  * 枠 390 × 265・上から 289px = 上下中央). 枠の縦横比は render.php が --l2dsis-mobile-ratio に入れる.
  * 1 コマ目の <picture> も同じ枠にするので、JS が動かないときも同じ見た目になる.
  *
+ * 横向き(844 × 390 など)で幅に合わせると枠が画面より高くなり、上下が切り抜かれる(【A】の実測: 枠 844 × 475).
+ * そのため枠の幅は「100%」と「固定する箱の高さ(100vh) × 縦横比」の小さいほうにし、左右も中央に置く.
+ * 縦横比の変数は "1280 / 720" の形なので、calc() の中で掛け算・割り算としてそのまま使える.
+ *
  * @return string CSS.
  */
 function l2dsis_get_mobile_css() {
 	return sprintf(
 		'@media (max-width: %dpx) {'
 		. '.l2dsis-sequence__poster, .l2dsis-sequence__canvas {'
-		. 'top: 50%%; bottom: auto; height: auto;'
+		. 'top: 50%%; right: auto; bottom: auto; left: 50%%;'
+		. 'width: min(100%%, calc(100vh * var(--l2dsis-mobile-ratio, 16 / 9))); height: auto;'
 		. 'aspect-ratio: var(--l2dsis-mobile-ratio, 16 / 9);'
-		. 'transform: translateY(-50%%);'
+		. 'transform: translate(-50%%, -50%%);'
 		. '}'
 		. '}',
 		l2dsis_get_breakpoint()
