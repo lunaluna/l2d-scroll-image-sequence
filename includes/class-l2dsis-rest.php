@@ -73,8 +73,11 @@ class L2dsis_Rest {
 	/**
 	 * シーケンスの一覧を返す.
 	 *
-	 * ゴミ箱以外のすべての状態を返す(下書きのシーケンスもブロックで選べるようにする).
+	 * 返すのは「公開」のシーケンスと、そのユーザーが編集できる(edit_post)シーケンスだけ. ほかの人の下書き・予約・
+	 * 保留・非公開は返さない(2026-10-15 のレビューの指摘 5. ユーザー決定. それまでは edit_posts があれば全員の分を返していた).
+	 * フロントに出るのは「公開」だけなので(L2dsis_Sequences::get_sequence_frame_urls()), 下書きを選んでもプレビューにしか出ない.
 	 * 件数は全部(-1). シーケンスはページに置く数だけあればよく少ない(2026-10-15 の alpine2026 で 4 本).
+	 * コマの一覧の読み込みは、リクエストの中でキャッシュされる(L2dsis_Sequences::get_frame_files()).
 	 *
 	 * @return WP_REST_Response 一覧. 各要素は id・title・status・frames(コマ数)・first_frame(1 コマ目の URL. 無ければ空).
 	 */
@@ -93,6 +96,10 @@ class L2dsis_Rest {
 
 		$items = array();
 		foreach ( $posts as $post ) {
+			if ( 'publish' !== $post->post_status && ! current_user_can( 'edit_post', $post->ID ) ) {
+				continue;
+			}
+
 			$frame_urls = L2dsis_Sequences::get_frame_urls( $post->ID );
 
 			$items[] = array(

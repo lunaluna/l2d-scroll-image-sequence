@@ -974,16 +974,27 @@ class L2dsis_Sequences {
 	/**
 	 * ブロックに表示するコマの URL を返す. 表示してよいシーケンスでなければ空.
 	 *
-	 * ブロックの属性には投稿 ID だけが入るので、あとからシーケンスが消されたりゴミ箱に入ったりしていることがある.
-	 * 投稿を完全に削除するとフォルダも消える(delete_files())が、ゴミ箱ではフォルダが残るので、ここで弾く.
+	 * ブロックの属性には投稿 ID だけが入るので、あとからシーケンスが消されたり、ゴミ箱や下書きに戻されたりしていることがある.
+	 * 表示してよいのは「公開」の状態のシーケンスだけ(2026-10-15 のレビューの指摘 5. ユーザー決定).
+	 * プレビューのときだけ、そのシーケンスを編集できる人には、下書き・予約・保留・非公開も表示する(ゴミ箱は出さない).
+	 * なお、コマの画像は uploads の公開 URL に置かれるので、状態にかかわらず URL を知っていれば取れる(機密には使えない).
 	 *
 	 * @param int $post_id シーケンスの投稿 ID.
 	 * @return string[] URL の配列.
 	 */
 	public static function get_sequence_frame_urls( $post_id ) {
 		$post_id = absint( $post_id );
-		if ( 0 === $post_id || self::POST_TYPE !== get_post_type( $post_id ) || 'trash' === get_post_status( $post_id ) ) {
+		if ( 0 === $post_id || self::POST_TYPE !== get_post_type( $post_id ) ) {
 			return array();
+		}
+
+		$status = get_post_status( $post_id );
+		if ( 'publish' !== $status ) {
+			// is_preview() はメインのクエリの前に呼ぶと _doing_it_wrong を出す(wp-includes/query.php)ので、クエリがあるときだけ呼ぶ.
+			$is_preview = isset( $GLOBALS['wp_query'] ) && is_preview();
+			if ( 'trash' === $status || ! $is_preview || ! current_user_can( 'edit_post', $post_id ) ) {
+				return array();
+			}
 		}
 
 		return self::get_frame_urls( $post_id );
