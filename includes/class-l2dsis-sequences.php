@@ -649,11 +649,17 @@ class L2dsis_Sequences {
 	/**
 	 * 一時フォルダの frames/ を、シーケンスのフォルダの frames/ と入れ替える.
 	 *
+	 * 古いコマは、新しいコマが frames/ に入るまで消さない(2026-10-15 のレビューの指摘 3. それまでは古い frames/ を
+	 * 先に消していたので、そのあとの名前の変更に失敗すると古いコマが失われた).
 	 * 1. 一時フォルダの frames/ を、シーケンスのフォルダの frames-new/ へ移す. move_dir() は rename() に失敗すると
-	 *    (一時フォルダと uploads が別のディスクのとき)コピーに切り替える
-	 * 2. 古い frames/ を消し、frames-new/ の名前を frames/ に変える(同じフォルダの中なので rename() で済む)
+	 *    (一時フォルダと uploads が別のディスクのとき)コピーに切り替える. 失敗したら古いコマはそのまま
+	 * 2. 古い frames/ の名前を frames-old/ に変える(消さない). 失敗したら frames-new/ を消して終わる
+	 * 3. frames-new/ の名前を frames/ に変える. 失敗したら frames-old/ を frames/ に戻す
+	 * 4. 成功したら frames-old/ を消す
+	 * 2・3 は同じフォルダの中なので rename() で済む.
 	 *
-	 * 1 で失敗したときは古いコマが残る. 2 の名前の変更だけが失敗したときは、frames-new/ が残る(次の取り込みで消す).
+	 * 前回の取り込みが途中で止まったときの残り: frames/ が無く frames-old/ だけがあれば、それが最後の正しいコマなので
+	 * frames/ に戻してから始める. frames/ もあれば frames-old/ は不要なので消す. frames-new/ は消す.
 	 *
 	 * @param string $work_dir     一時フォルダ.
 	 * @param string $sequence_dir シーケンスのフォルダ.
@@ -662,14 +668,23 @@ class L2dsis_Sequences {
 	private static function swap_frames( $work_dir, $sequence_dir ) {
 		global $wp_filesystem;
 
-		$new_dir    = $sequence_dir . '/' . self::FRAMES_DIR . '-new';
 		$frames_dir = $sequence_dir . '/' . self::FRAMES_DIR;
+		$new_dir    = $frames_dir . '-new';
+		$old_dir    = $frames_dir . '-old';
 
-		// 前回の取り込みが途中で止まって残ったものを消す.
+		// 前回の取り込みが途中で止まって残ったものを片付ける.
+		if ( $wp_filesystem->exists( $old_dir ) ) {
+			if ( $wp_filesystem->exists( $frames_dir ) ) {
+				$wp_filesystem->delete( $old_dir, true );
+			} else {
+				$wp_filesystem->move( $old_dir, $frames_dir );
+			}
+		}
 		if ( $wp_filesystem->exists( $new_dir ) ) {
 			$wp_filesystem->delete( $new_dir, true );
 		}
 
+		// 1. 新しいコマを frames-new/ へ.
 		$moved = move_dir( $work_dir . '/' . self::FRAMES_DIR, $new_dir );
 		if ( is_wp_error( $moved ) ) {
 			return new WP_Error(
@@ -682,12 +697,25 @@ class L2dsis_Sequences {
 			);
 		}
 
-		if ( $wp_filesystem->exists( $frames_dir ) && ! $wp_filesystem->delete( $frames_dir, true ) ) {
-			return new WP_Error( 'l2dsis_delete_failed', __( 'Could not remove the old frames.', 'l2d-scroll-image-sequence' ) );
+		// 2. 古いコマを frames-old/ へ退避する(初めての取り込みでは frames/ が無い).
+		$has_old = $wp_filesystem->exists( $frames_dir );
+		if ( $has_old && ! $wp_filesystem->move( $frames_dir, $old_dir ) ) {
+			$wp_filesystem->delete( $new_dir, true );
+			return new WP_Error( 'l2dsis_move_failed', __( 'Could not replace the frames. The current frames were kept.', 'l2d-scroll-image-sequence' ) );
 		}
 
+		// 3. 新しいコマを frames/ へ. 失敗したら古いコマを戻す.
 		if ( ! $wp_filesystem->move( $new_dir, $frames_dir ) ) {
-			return new WP_Error( 'l2dsis_move_failed', __( 'Could not save the frames.', 'l2d-scroll-image-sequence' ) );
+			if ( $has_old ) {
+				$wp_filesystem->move( $old_dir, $frames_dir );
+			}
+			$wp_filesystem->delete( $new_dir, true );
+			return new WP_Error( 'l2dsis_move_failed', __( 'Could not replace the frames. The current frames were kept.', 'l2d-scroll-image-sequence' ) );
+		}
+
+		// 4. 入れ替えが済んだので、古いコマを消す. 消せなくても新しいコマは入っているので失敗にしない(次の取り込みで消す).
+		if ( $has_old ) {
+			$wp_filesystem->delete( $old_dir, true );
 		}
 
 		// rename() は元の権限と持ち主をそのまま保つ. 念のため、入れ替えた後にも uploads のフォルダとしての権限に直す.
