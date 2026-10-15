@@ -59,6 +59,63 @@ function parseFrames( json ) {
 }
 
 /**
+ * ページ全体で、同時に読み込むコマの数の上限.
+ *
+ * 全コマに一斉に読み込みを出すと、サーバーや CDN へリクエストが集中し、どのコマから届くかも決められない
+ * (2026-10-15 のレビューの指摘 2). ページの中のすべてのブロックで、1 つのキューを共有する.
+ * 6 は、HTTP/1.1 のブラウザが 1 つのホストに同時に張る接続の数の上限(それ以上出しても待たされるだけ).
+ * HTTP/2 では上限が無いが、数を絞ることで、今の位置に近いコマから順に届くようにできる.
+ * この値で全コマを読み終えるまでの時間がどう変わるかは未実測(【A】で、前回と同じ 20Mbps・5Mbps の条件で測る).
+ */
+const MAX_CONCURRENT_LOADS = 6;
+
+/**
+ * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() を持つ.
+ *
+ * @type {Array<{nextLoad: () => ({url: string, done: (image: HTMLImageElement|null) => void}|null)}>}
+ */
+const loaders = [];
+
+/**
+ * 今、読み込み中のコマの数(ページ全体).
+ */
+let activeLoads = 0;
+
+/**
+ * 読み込みの空きがあれば、登録したブロックを順番に回って 1 件ずつ読み始める.
+ * 1 つのブロックが空きを独り占めしないよう、1 周につき 1 ブロック 1 件にする.
+ * 読み込みが 1 件終わるたび・ブロックが読み始めてよくなったたびに呼ぶ.
+ */
+function pumpLoads() {
+	let started = true;
+	while ( activeLoads < MAX_CONCURRENT_LOADS && started ) {
+		started = false;
+		for ( const loader of loaders ) {
+			if ( activeLoads >= MAX_CONCURRENT_LOADS ) {
+				break;
+			}
+			const task = loader.nextLoad();
+			if ( ! task ) {
+				continue;
+			}
+			started = true;
+			activeLoads++;
+
+			const image = new window.Image();
+			image.decoding = 'async';
+			const finish = ( loaded ) => {
+				activeLoads--;
+				task.done( loaded ? image : null );
+				pumpLoads();
+			};
+			image.onload = () => finish( true );
+			image.onerror = () => finish( false );
+			image.src = task.url;
+		}
+	}
+}
+
+/**
  * 1 つのブロックの動きを組み立てる.
  *
  * @param {HTMLElement} root .l2dsis-sequence の要素.
@@ -111,8 +168,11 @@ function setupSequence( root ) {
 	// 今の状態('reduced' / 'pinned' / 'static'). 最初は決まっていない.
 	let mode = '';
 	// 今使っているコマの URL と、読み込んだ画像(読み込み中・失敗・読まないコマは null).
+	// 読み込んだ画像は全部保持する(戻る方向にスクロールしてもすぐ描けるように. 2026-10-15 ユーザー決定).
 	let frames = [];
 	let images = [];
+	// 読み込みを出したか(読み込み中・読み込み済み・失敗は true). 同じコマを 2 回読まないため.
+	let requested = [];
 	// 箱が先読みの範囲に入ったか(IntersectionObserver). 入ったあとで固定するようになったときにも読み始める.
 	let nearViewport = false;
 	let loadingStarted = false;
@@ -132,24 +192,50 @@ function setupSequence( root ) {
 			: desktopFrames;
 
 	/**
-	 * コマを読み始める. コマの一覧を入れ替えたときは呼び直す.
+	 * 次に読むコマを返す(ページ全体のキュー pumpLoads() から呼ばれる). 読むものが無ければ null.
 	 *
+	 * まだ読み込みを出していないコマのうち、今欲しいコマ(wantedIndex)に一番近いものを選ぶ.
+	 * スクロールして欲しいコマが変われば、次に読むコマもそれに合わせて変わる.
 	 * 視差効果を減らす設定のときは、最後のコマしか描かないので、最後のコマ 1 枚だけを読む
 	 * (2026-10-15 ユーザー決定. それまでは全コマを読み、届くたびに描き直していた).
+	 *
+	 * @return {{url: string, done: (image: HTMLImageElement|null) => void}|null} 読むコマの URL と、読み終えたときに呼ぶ関数.
 	 */
-	const startLoading = () => {
-		loadingStarted = true;
-		images = frames.map( () => null );
+	const nextLoad = () => {
+		if ( ! loadingStarted ) {
+			return null;
+		}
 
-		frames.forEach( ( url, index ) => {
-			if ( reducedMotion && index !== frames.length - 1 ) {
-				return;
+		let index = -1;
+		if ( reducedMotion ) {
+			const last = frames.length - 1;
+			index = requested[ last ] ? -1 : last;
+		} else {
+			for ( let distance = 0; distance < frames.length; distance++ ) {
+				const earlier = wantedIndex - distance;
+				const later = wantedIndex + distance;
+				if ( earlier >= 0 && ! requested[ earlier ] ) {
+					index = earlier;
+					break;
+				}
+				if ( later < frames.length && ! requested[ later ] ) {
+					index = later;
+					break;
+				}
 			}
-			const image = new window.Image();
-			image.decoding = 'async';
-			image.onload = () => {
+		}
+		if ( -1 === index ) {
+			return null;
+		}
+
+		requested[ index ] = true;
+		const url = frames[ index ];
+		return {
+			url,
+			done: ( image ) => {
+				// 失敗したコマは null のまま. 近いコマで代わりに描く(3-3 の「一部が失敗」).
 				// 一覧を入れ替えたあとに、古い一覧の画像が届いたら捨てる.
-				if ( frames[ index ] !== url ) {
+				if ( ! image || frames[ index ] !== url ) {
 					return;
 				}
 				images[ index ] = image;
@@ -161,10 +247,16 @@ function setupSequence( root ) {
 				) {
 					requestDraw();
 				}
-			};
-			// 失敗したコマは null のまま. 近いコマで代わりに描く(3-3 の「一部が失敗」).
-			image.src = url;
-		} );
+			},
+		};
+	};
+
+	/**
+	 * コマを読み始める. 実際に読むのはページ全体のキュー(pumpLoads())で、ここでは読み始めてよい印を付けるだけ.
+	 */
+	const startLoading = () => {
+		loadingStarted = true;
+		pumpLoads();
 	};
 
 	/**
@@ -382,9 +474,10 @@ function setupSequence( root ) {
 		}
 		frames = next;
 		images = frames.map( () => null );
+		requested = frames.map( () => false );
 		drawnIndex = -1;
 		if ( loadingStarted ) {
-			startLoading();
+			pumpLoads();
 		}
 	};
 
@@ -417,6 +510,9 @@ function setupSequence( root ) {
 		maybeStartLoading();
 		requestDraw();
 	};
+
+	// ページ全体の読み込みのキューに登録する(読み始めるのは startLoading() のあと).
+	loaders.push( { nextLoad } );
 
 	selectFrames();
 	updateMode();
