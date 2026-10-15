@@ -834,6 +834,24 @@ class L2dsis_Sequences {
 	}
 
 	/**
+	 * ブロックに表示するコマの URL を返す. 表示してよいシーケンスでなければ空.
+	 *
+	 * ブロックの属性には投稿 ID だけが入るので、あとからシーケンスが消されたりゴミ箱に入ったりしていることがある.
+	 * 投稿を完全に削除するとフォルダも消える(delete_files())が、ゴミ箱ではフォルダが残るので、ここで弾く.
+	 *
+	 * @param int $post_id シーケンスの投稿 ID.
+	 * @return string[] URL の配列.
+	 */
+	public static function get_sequence_frame_urls( $post_id ) {
+		$post_id = absint( $post_id );
+		if ( 0 === $post_id || self::POST_TYPE !== get_post_type( $post_id ) || 'trash' === get_post_status( $post_id ) ) {
+			return array();
+		}
+
+		return self::get_frame_urls( $post_id );
+	}
+
+	/**
 	 * PHP のアップロードのエラー番号を、画面に出す文に変える.
 	 *
 	 * @param int $error UPLOAD_ERR_* の値.

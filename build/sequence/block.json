@@ -5,11 +5,39 @@
   "version": "0.1.0",
   "title": "Scroll Image Sequence",
   "category": "media",
-  "icon": "smiley",
+  "icon": "images-alt2",
   "description": "Plays an image sequence on a canvas in sync with page scroll while the section is pinned.",
-  "example": {},
+  "keywords": [
+    "image sequence",
+    "scroll",
+    "canvas",
+    "animation"
+  ],
+  "attributes": {
+    "sequenceId": {
+      "type": "number",
+      "default": 0
+    },
+    "sequenceIdMobile": {
+      "type": "number",
+      "default": 0
+    },
+    "scrollLength": {
+      "type": "number",
+      "default": 1.8
+    },
+    "revealAt": {
+      "type": "number",
+      "default": 0.6
+    }
+  },
   "supports": {
-    "html": false
+    "html": false,
+    "anchor": true,
+    "align": [
+      "wide",
+      "full"
+    ]
   },
   "textdomain": "l2d-scroll-image-sequence",
   "editorScript": "file:./index.js",

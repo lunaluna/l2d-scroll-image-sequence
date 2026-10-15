@@ -1,12 +1,117 @@
 /**
- * The following styles get applied both on the front of your site
- * and in the editor.
+ * ブロック l2d-scroll-image-sequence/sequence の CSS(フロントと編集画面の両方に効く).
  *
- * Replace them with your own styles or remove the file completely.
+ * 持つのは固定・canvas・重ね方・フェードインだけ. 見出しや数値の文字組みは各サイトのテーマが持つ
+ * (alpine2026 では model-a290.scss). 外側の箱には追加 CSS クラスでテーマのクラスを付ける.
  */
 
-.wp-block-l2d-scroll-image-sequence-sequence {
-	background-color: #21759b;
-	color: #fff;
-	padding: 2px;
+// =============================================================================
+// 外側の箱
+// =============================================================================
+
+.l2dsis-sequence {
+	position: relative;
+	// コマを読み込む前や、シーケンスが無いときの下地.
+	// 後続のセクションが固定の HERO に重なるテーマでも透けないよう、不透明にする.
+	background-color: #000;
+
+	// JS が動いて固定するときだけ縦に伸ばす(view.js が .is-pinned を付ける).
+	// 固定の 1 画面ぶん + コマを進めるスクロールの長さ(画面の高さ × --l2dsis-scroll-length).
+	// --l2dsis-scroll-length は render.php が style に入れる.
+	&.is-pinned {
+		height: calc(100vh * (1 + var(--l2dsis-scroll-length, 1.8)));
+	}
+}
+
+// =============================================================================
+// 固定する箱
+// =============================================================================
+
+.l2dsis-sequence__sticky {
+	position: relative;
+	height: 100vh;
+	overflow: hidden;
+
+	.is-pinned > & {
+		position: sticky;
+		top: 0;
+	}
+}
+
+// =============================================================================
+// 1 コマ目(下敷き)と canvas. 箱いっぱいに重ねる
+// =============================================================================
+
+.l2dsis-sequence__poster,
+.l2dsis-sequence__canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.l2dsis-sequence__poster {
+	display: block;
+
+	// <picture> の中の <img>. canvas と同じく、箱を埋めるように切り抜く.
+	img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+}
+
+// 編集画面では <img> に直接クラスが付く(edit.js).
+img.l2dsis-sequence__poster {
+	object-fit: cover;
+}
+
+.l2dsis-sequence__canvas {
+	display: block;
+}
+
+// =============================================================================
+// 中身(InnerBlocks). コマの上に重ねる
+// =============================================================================
+
+.l2dsis-sequence__content {
+	position: relative;
+	z-index: 1;
+	height: 100%;
+}
+
+// =============================================================================
+// フェードイン(中身のブロックに追加 CSS クラス l2dsis-reveal を付けたとき)
+// 進み具合が revealAt を超えると view.js が .is-revealed を付け、子要素が順に現れる.
+// 隠すのは .is-pinned のときだけ. JS が動かないときや、視差効果を減らす設定のときは、ずっと見えている.
+// 時間は UK の 1 回の観測(現れ始めてから 350ms 後の不透明度が 1・0.97・0.74・0.11)からの見積もりで、未実測.
+// =============================================================================
+
+$l2dsis-reveal-duration: 0.3s;
+$l2dsis-reveal-stagger: 0.1s;
+
+.l2dsis-reveal > * {
+	transition: opacity $l2dsis-reveal-duration ease-out;
+}
+
+.is-pinned:not(.is-revealed) .l2dsis-reveal > * {
+	opacity: 0;
+}
+
+// 現れるときだけ、子要素を 1 つずつ遅らせる(消えるときはまとめて消す).
+.is-revealed .l2dsis-reveal > * {
+
+	@for $i from 2 through 12 {
+		&:nth-child(#{$i}) {
+			transition-delay: ($i - 1) * $l2dsis-reveal-stagger;
+		}
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.l2dsis-reveal > * {
+		transition: none;
+	}
 }

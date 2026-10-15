@@ -51,6 +51,12 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-l2dsis-sequences.php'
 L2dsis_Sequences::init();
 
 /**
+ * ブロックの編集画面が使う REST ルート(l2dsis/v1/sequences).
+ */
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-l2dsis-rest.php';
+L2dsis_Rest::init();
+
+/**
  * GitHub Releases ベースの自己更新機構の読み込み(l2d-wp-github-update-lib).
  *
  * 読み込む lib/l2d-updater/ は git subtree で取り込んだ配布用のコピー. 直接編集しない.
@@ -76,6 +82,14 @@ $l2dsis_updater_register(
  * @return void
  */
 function l2dsis_register_blocks() {
-	register_block_type( __DIR__ . '/build/sequence' );
+	$block_type = register_block_type( __DIR__ . '/build/sequence' );
+	if ( ! $block_type instanceof WP_Block_Type ) {
+		return;
+	}
+
+	// 編集画面の JS の翻訳(languages/ の JSON)を読む. ハンドル名は block.json から自動で付くので、決め打ちせず取り出す.
+	foreach ( $block_type->editor_script_handles as $handle ) {
+		wp_set_script_translations( $handle, 'l2d-scroll-image-sequence', plugin_dir_path( __FILE__ ) . 'languages' );
+	}
 }
 add_action( 'init', 'l2dsis_register_blocks' );
