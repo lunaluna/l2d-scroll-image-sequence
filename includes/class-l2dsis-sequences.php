@@ -212,6 +212,16 @@ class L2dsis_Sequences {
 			</p>
 		<?php endif; ?>
 
+		<?php
+		// 寄稿者など upload_files の無いユーザーには、上げても save() で止まるだけなので欄を出さない.
+		if ( ! current_user_can( 'upload_files' ) ) :
+			?>
+			<p class="description"><?php esc_html_e( 'You are not allowed to upload frames. Ask an editor or administrator to upload the ZIP file.', 'l2d-scroll-image-sequence' ); ?></p>
+			<?php
+			return;
+		endif;
+		?>
+
 		<?php /* ZIP のファイル欄. 選ばずに保存したときは、今のコマをそのまま残す. */ ?>
 		<p>
 			<label for="<?php echo esc_attr( self::FILE_FIELD ); ?>">
@@ -303,7 +313,7 @@ class L2dsis_Sequences {
 		if ( $result['skipped'] > 0 ) {
 			$message .= ' ' . sprintf(
 				/* translators: %d: number of ignored files. */
-				_n( '%d file that is not a WebP, JPEG or PNG image was ignored.', '%d files that are not WebP, JPEG or PNG images were ignored.', $result['skipped'], 'l2d-scroll-image-sequence' ),
+				_n( '%d other file in the ZIP file was not imported.', '%d other files in the ZIP file were not imported.', $result['skipped'], 'l2d-scroll-image-sequence' ),
 				$result['skipped']
 			);
 		}
@@ -360,6 +370,9 @@ class L2dsis_Sequences {
 			if ( ! wp_mkdir_p( $work_dir ) ) {
 				return new WP_Error( 'l2dsis_mkdir_failed', __( 'Could not create a temporary folder.', 'l2d-scroll-image-sequence' ) );
 			}
+			// wp_mkdir_p() は親フォルダの権限(sticky ビットを含む)を引き継ぐので, /tmp(1777)の下だと誰でも書ける
+			// フォルダになる. ここで作るフォルダはあとで uploads へ移すので、権限を明示しておく.
+			$wp_filesystem->chmod( $work_dir, FS_CHMOD_DIR );
 
 			$entries = self::select_entries( $zip );
 			if ( is_wp_error( $entries ) ) {
@@ -444,9 +457,11 @@ class L2dsis_Sequences {
 				continue;
 			}
 
-			// macOS が足す __MACOSX/ と ._* などの隠しファイルは、数に入れずに飛ばす.
+			// macOS が足す __MACOSX/ と、._* や .htaccess などの隠しファイルは取り出さない.
+			// 黙って消えるとわかりにくいので、取り込まなかったファイルとして数える(2026-10-15【A】の指摘).
 			$basename = wp_basename( $name );
 			if ( 0 === strpos( $name, '__MACOSX/' ) || false !== strpos( $name, '/__MACOSX/' ) || 0 === strpos( $basename, '.' ) ) {
+				++$skipped;
 				continue;
 			}
 
@@ -523,6 +538,8 @@ class L2dsis_Sequences {
 		if ( ! wp_mkdir_p( $frames_dir ) ) {
 			return new WP_Error( 'l2dsis_mkdir_failed', __( 'Could not create a temporary folder.', 'l2d-scroll-image-sequence' ) );
 		}
+		// このフォルダがそのまま uploads の frames/ になるので、親の権限を引き継がないよう明示する(import_zip() を参照).
+		$wp_filesystem->chmod( $frames_dir, FS_CHMOD_DIR );
 
 		$frames  = 0;
 		$skipped = 0;
@@ -600,6 +617,10 @@ class L2dsis_Sequences {
 		if ( ! $wp_filesystem->move( $new_dir, $frames_dir ) ) {
 			return new WP_Error( 'l2dsis_move_failed', __( 'Could not save the frames.', 'l2d-scroll-image-sequence' ) );
 		}
+
+		// rename() は元の権限と持ち主をそのまま保つ. 念のため、入れ替えた後にも uploads のフォルダとしての権限に直す.
+		// 持ち主のグループ(/tmp で作ると wheel など)は変えない. 755 なら他のユーザーは書けないため.
+		$wp_filesystem->chmod( $frames_dir, FS_CHMOD_DIR );
 
 		return true;
 	}
