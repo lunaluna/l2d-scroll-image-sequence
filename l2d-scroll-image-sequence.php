@@ -45,6 +45,21 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/functions-activation.php';
 register_activation_hook( __FILE__, 'l2dsis_check_environment' );
 
 /**
+ * GitHub Releases ベースの自己更新機構の読み込み(l2d-wp-github-update-lib).
+ *
+ * 読み込む lib/l2d-updater/ は git subtree で取り込んだ配布用のコピー. 直接編集しない.
+ * 公開リポジトリなので token は渡さない. cache_key・filter_prefix は既存の更新機構から
+ * 移るときのための設定なので、新しいこのプラグインでは省いてライブラリの既定値にする.
+ */
+$l2dsis_updater_register = require plugin_dir_path( __FILE__ ) . 'lib/l2d-updater/loader.php';
+$l2dsis_updater_register(
+	array(
+		'plugin_file' => __FILE__,
+		'github_repo' => 'lunaluna/l2d-scroll-image-sequence',
+	)
+);
+
+/**
  * ブロックを登録する.
  *
  * ビルド済みの build/sequence/block.json を読み、エディター用・フロント用の
