@@ -434,17 +434,51 @@ class L2dsis_Sequences {
 		/**
 		 * 1 つの ZIP から取り出すコマの合計の大きさの上限(バイト).
 		 *
-		 * 既定の 500MB は、Step 0 で測った 1 本の合計 3.4MB(90 コマ)を大きく上回る値.
+		 * 既定の 100MB は、Step 0 で測った 1 本の合計 3.4MB(90 コマ)の約 30 倍.
+		 * 2026-10-15 のレビューの指摘で 500MB から下げた(ユーザー決定).
 		 *
 		 * @param int $bytes 上限(バイト).
 		 */
-		$max_total_bytes = (int) apply_filters( 'l2dsis_max_total_bytes', 500 * MB_IN_BYTES );
+		$max_total_bytes = (int) apply_filters( 'l2dsis_max_total_bytes', 100 * MB_IN_BYTES );
+
+		/**
+		 * ZIP の中のエントリ(フォルダ・画像以外のファイルも含む)の数の上限.
+		 *
+		 * 大量の空ファイルなどで、一覧を見るだけでも CPU 時間を使わせないため(2026-10-15 のレビューの指摘).
+		 * 既定の 1,000 は、実際のシーケンスのコマ数(90・100)の約 10 倍.
+		 *
+		 * @param int $count 上限.
+		 */
+		$max_zip_entries = (int) apply_filters( 'l2dsis_max_zip_entries', 1000 );
+
+		/**
+		 * 取り込むコマの数の上限.
+		 *
+		 * ブラウザで読み込む画像の数を抑えるため(2026-10-15 のレビューの指摘).
+		 * 既定の 300 は、実際のシーケンスのコマ数(90・100)の 3 倍.
+		 *
+		 * @param int $count 上限.
+		 */
+		$max_frames = (int) apply_filters( 'l2dsis_max_frames', 300 );
+
+		$entry_count = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- ZipArchive のプロパティ名.
+		if ( $entry_count > $max_zip_entries ) {
+			return new WP_Error(
+				'l2dsis_too_many_entries',
+				sprintf(
+					/* translators: 1: number of files in the ZIP file, 2: maximum number. */
+					__( 'The ZIP file has %1$d files, more than the limit (%2$d). The current frames were kept.', 'l2d-scroll-image-sequence' ),
+					$entry_count,
+					$max_zip_entries
+				)
+			);
+		}
 
 		$entries = array();
 		$skipped = 0;
 		$total   = 0;
 
-		for ( $i = 0; $i < $zip->numFiles; $i++ ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- ZipArchive のプロパティ名.
+		for ( $i = 0; $i < $entry_count; $i++ ) {
 			$stat = $zip->statIndex( $i );
 			if ( false === $stat ) {
 				continue;
@@ -515,6 +549,17 @@ class L2dsis_Sequences {
 				'index' => $i,
 				'size'  => (int) $stat['size'],
 			);
+
+			if ( count( $entries ) > $max_frames ) {
+				return new WP_Error(
+					'l2dsis_too_many_frames',
+					sprintf(
+						/* translators: %d: maximum number of frames. */
+						__( 'The ZIP file has more images than the limit (%d frames). The current frames were kept.', 'l2d-scroll-image-sequence' ),
+						$max_frames
+					)
+				);
+			}
 		}
 
 		return array(
@@ -541,6 +586,17 @@ class L2dsis_Sequences {
 		// このフォルダがそのまま uploads の frames/ になるので、親の権限を引き継がないよう明示する(import_zip() を参照).
 		$wp_filesystem->chmod( $frames_dir, FS_CHMOD_DIR );
 
+		/**
+		 * コマ 1 枚の画素数(幅 × 高さ)の上限.
+		 *
+		 * ファイルが小さくても寸法が極端に大きい画像は、ブラウザでデコードするときに大きなメモリを使うため
+		 * (2026-10-15 のレビューの指摘). 既定の 16,000,000(16 メガピクセル)は、実際のコマ 2048 × 1152
+		 * (約 2.4 メガピクセル)の約 7 倍で、4K(3840 × 2160 = 約 8.3 メガピクセル)も通る.
+		 *
+		 * @param int $pixels 上限.
+		 */
+		$max_frame_pixels = (int) apply_filters( 'l2dsis_max_frame_pixels', 16000000 );
+
 		$frames  = 0;
 		$skipped = 0;
 
@@ -559,10 +615,26 @@ class L2dsis_Sequences {
 
 			// 拡張子と中身の両方が画像かを確かめる. 中身と拡張子が合わないものは proper_filename が入る.
 			$check = wp_check_filetype_and_ext( $path, $file_name, self::FRAME_MIMES );
-			if ( ! $check['ext'] || ! $check['type'] || false !== $check['proper_filename'] || false === wp_getimagesize( $path ) ) {
+			$size  = wp_getimagesize( $path );
+			if ( ! $check['ext'] || ! $check['type'] || false !== $check['proper_filename'] || false === $size ) {
 				wp_delete_file( $path );
 				++$skipped;
 				continue;
+			}
+
+			// 画素数の上限. 超えたら取り込み全体を止める(1 枚だけ捨てると、コマが抜けたシーケンスになるため).
+			if ( (int) $size[0] * (int) $size[1] > $max_frame_pixels ) {
+				return new WP_Error(
+					'l2dsis_frame_too_many_pixels',
+					sprintf(
+						/* translators: 1: file name, 2: image width, 3: image height, 4: maximum number of pixels. */
+						__( 'The image %1$s is %2$d × %3$d pixels, more than the limit (%4$s pixels). The current frames were kept.', 'l2d-scroll-image-sequence' ),
+						$file_name,
+						(int) $size[0],
+						(int) $size[1],
+						number_format_i18n( $max_frame_pixels )
+					)
+				);
 			}
 
 			++$frames;
