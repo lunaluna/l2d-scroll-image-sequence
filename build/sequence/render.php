@@ -9,6 +9,9 @@
  *     ├ <canvas>(view.js がスクロールに合わせてコマを描く)
  *     └ 中身(InnerBlocks の $content)
  *
+ * SP の幅(l2dsis_get_breakpoint() 以下)では、<picture> と canvas を幅いっぱいの横長の枠にして上下中央に置く.
+ * その CSS はメインファイルの l2dsis_get_mobile_css(). 枠の縦横比はここで --l2dsis-mobile-ratio に入れる.
+ *
  * コマの URL・切り替え幅・中身を出す位置は data- 属性で view.js に渡す.
  * このファイルは描画のたびに require される(wp-includes/blocks.php)ので、関数を定義しない.
  *
@@ -34,16 +37,16 @@ $l2dsis_frames_mobile = ( $l2dsis_sequence_id_mobile && $l2dsis_sequence_id_mobi
 	? L2dsis_Sequences::get_sequence_frame_urls( $l2dsis_sequence_id_mobile )
 	: array();
 
-/**
- * SP 用のシーケンスに切り替える画面の幅(px). この幅以下で SP 用を使う.
- *
- * 既定の 1024 は、確認用サイト alpine2026 のテーマの切り替え幅(PC は width > 1024px)に合わせた値.
- *
- * @param int $breakpoint 切り替える幅(px).
- */
-$l2dsis_breakpoint = (int) apply_filters( 'l2dsis_breakpoint', 1024 );
+// SP 用のシーケンスに切り替える幅. フィルター l2dsis_breakpoint はメインファイルの関数の中で 1 か所だけ読む.
+$l2dsis_breakpoint = l2dsis_get_breakpoint();
 
 $l2dsis_has_frames = ! empty( $l2dsis_frames );
+
+// SP の幅のときにコマを描く、幅いっぱいの枠の縦横比(SP 用のコマの 1 コマ目. 無ければ PC 用). 読めなければ CSS の既定 16 / 9.
+$l2dsis_mobile_ratio = '';
+if ( $l2dsis_has_frames ) {
+	$l2dsis_mobile_ratio = L2dsis_Sequences::get_frame_ratio( ! empty( $l2dsis_frames_mobile ) ? $l2dsis_sequence_id_mobile : $l2dsis_sequence_id );
+}
 
 // 小数を文字列にするときは wp_json_encode() を使う. PHP 7.4 の (string) はロケールによって小数点が「,」になり、
 // CSS や JS が読めなくなるため(json_encode はロケールに左右されない).
@@ -53,7 +56,8 @@ $l2dsis_reveal_at_text     = wp_json_encode( $l2dsis_reveal_at );
 $l2dsis_wrapper_attributes = get_block_wrapper_attributes(
 	array(
 		'class'              => 'l2dsis-sequence ' . ( $l2dsis_has_frames ? 'has-frames' : 'is-empty' ),
-		'style'              => '--l2dsis-scroll-length:' . $l2dsis_scroll_length_text . ';',
+		'style'              => '--l2dsis-scroll-length:' . $l2dsis_scroll_length_text . ';'
+			. ( '' !== $l2dsis_mobile_ratio ? '--l2dsis-mobile-ratio:' . $l2dsis_mobile_ratio . ';' : '' ),
 		// 値は get_block_wrapper_attributes() の中で esc_attr() される(wp-includes/class-wp-block-supports.php).
 		'data-frames'        => $l2dsis_has_frames ? wp_json_encode( $l2dsis_frames ) : '',
 		'data-frames-mobile' => ! empty( $l2dsis_frames_mobile ) ? wp_json_encode( $l2dsis_frames_mobile ) : '',

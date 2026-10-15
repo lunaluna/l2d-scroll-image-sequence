@@ -91,5 +91,52 @@ function l2dsis_register_blocks() {
 	foreach ( $block_type->editor_script_handles as $handle ) {
 		wp_set_script_translations( $handle, 'l2d-scroll-image-sequence', plugin_dir_path( __FILE__ ) . 'languages' );
 	}
+
+	// SP の幅のときの CSS を、ブロックの CSS(style-index.css)の後ろに足す.
+	// 切り替え幅はフィルターで変えられるので、style.scss に決め打ちせずここで作る(view.js も同じ値を data-breakpoint で読む).
+	foreach ( $block_type->style_handles as $handle ) {
+		wp_add_inline_style( $handle, l2dsis_get_mobile_css() );
+	}
 }
 add_action( 'init', 'l2dsis_register_blocks' );
+
+/**
+ * SP 用のシーケンスに切り替える画面の幅(px). この幅以下を SP として扱う.
+ *
+ * フィルターを使う場所(render.php・SP の CSS)で値がずれないよう、ここ 1 か所で読む.
+ *
+ * @return int 切り替える幅(px).
+ */
+function l2dsis_get_breakpoint() {
+	/**
+	 * SP 用のシーケンスに切り替える画面の幅(px). この幅以下で SP 用を使い、コマを幅いっぱいの枠に描く.
+	 *
+	 * 既定の 1024 は、確認用サイト alpine2026 のテーマの切り替え幅(PC は width > 1024px)に合わせた値.
+	 *
+	 * @param int $breakpoint 切り替える幅(px).
+	 */
+	return absint( apply_filters( 'l2dsis_breakpoint', 1024 ) );
+}
+
+/**
+ * SP の幅のときの CSS.
+ *
+ * UK の A290 ページの SP と同じく、コマを画面いっぱいに切り抜かず、幅いっぱいの横長の枠(コマの縦横比)に
+ * コマ全体を描き、その枠を固定する箱の上下中央に置く(2026-10-15 ユーザー決定. UK の実測: 390 × 844 の画面で
+ * 枠 390 × 265・上から 289px = 上下中央). 枠の縦横比は render.php が --l2dsis-mobile-ratio に入れる.
+ * 1 コマ目の <picture> も同じ枠にするので、JS が動かないときも同じ見た目になる.
+ *
+ * @return string CSS.
+ */
+function l2dsis_get_mobile_css() {
+	return sprintf(
+		'@media (max-width: %dpx) {'
+		. '.l2dsis-sequence__poster, .l2dsis-sequence__canvas {'
+		. 'top: 50%%; bottom: auto; height: auto;'
+		. 'aspect-ratio: var(--l2dsis-mobile-ratio, 16 / 9);'
+		. 'transform: translateY(-50%%);'
+		. '}'
+		. '}',
+		l2dsis_get_breakpoint()
+	);
+}

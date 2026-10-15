@@ -11,12 +11,17 @@
  */
 
 /**
- * 先読みを始める距離. 箱がこの距離まで画面に近づいたら、全コマを読み始める.
+ * 先読みを始める距離. 箱の上端が「画面の下端 + 画面の高さ × 2」まで近づいたら、全コマを読み始める.
+ * 先読みを始めてから固定が始まるまでのスクロールは、画面 3 つ分(1440 × 900 で 2700px)になる.
  *
- * 未実測. いったん「画面 1 つ分手前」(IntersectionObserver の rootMargin の 100%)にしている.
- * 【A】で、全コマを読み終えるまでの時間と、箱に着くまでのスクロールの時間を測ってから決め直す(プランの Step 3).
+ * 根拠は 2026-10-15 の【A】の実測(キャッシュなし・最初のコマの要求からの時間. PC 90 コマ 3.4MB):
+ * 20Mbps・40ms で最初の 10 コマ 1.1 秒・半分 2.4 秒・全部 4.4 秒 / 5Mbps・150ms で 4.3 秒・9.3 秒・17.4 秒.
+ * 1 秒に 1000px スクロールすると(この速さは仮定で未実測), 固定の始まりまで約 2.7 秒あり、20Mbps なら前半のコマが
+ * 間に合う. 前の値の 100%(画面 2 つ分・1.8 秒)では最初の 10 コマまでしか間に合わなかった.
+ * 5Mbps ではどちらでも間に合わない. それ以上に早めると、セクションまで来ない人にも数 MB を読ませるので、ここで止める.
+ * ページを開いた時点で箱がこの範囲に入っていれば(A290 の #19 など)、すぐに読み始める.
  */
-const PRELOAD_ROOT_MARGIN = '100% 0px';
+const PRELOAD_ROOT_MARGIN = '200% 0px';
 
 /**
  * 値を min〜max に収める.
@@ -93,12 +98,18 @@ function setupSequence( root ) {
 
 	/**
 	 * 全コマを読み始める. 1 回だけ呼ぶ(コマの一覧を入れ替えたときは呼び直す).
+	 *
+	 * 視差効果を減らす設定のときは、最後のコマしか描かないので、最後のコマ 1 枚だけを読む
+	 * (2026-10-15 ユーザー決定. それまでは全コマを読み、届くたびに描き直していた).
 	 */
 	const startLoading = () => {
 		loadingStarted = true;
 		images = frames.map( () => null );
 
 		frames.forEach( ( url, index ) => {
+			if ( reducedMotion && index !== frames.length - 1 ) {
+				return;
+			}
 			const image = new window.Image();
 			image.decoding = 'async';
 			image.onload = () => {
@@ -140,12 +151,16 @@ function setupSequence( root ) {
 	};
 
 	/**
-	 * Canvas の大きさを箱に合わせる. 画面の解像度(devicePixelRatio)の分だけ大きくして、ぼやけないようにする.
+	 * Canvas の描く大きさを、canvas が画面に表示されている大きさに合わせる.
+	 * 画面の解像度(devicePixelRatio)の分だけ大きくして、ぼやけないようにする.
+	 *
+	 * PC では固定する箱いっぱい、SP では幅いっぱいの横長の枠(l2dsis_get_mobile_css())になるので、
+	 * 箱ではなく canvas 自身の大きさを見る.
 	 */
 	const resizeCanvas = () => {
 		const ratio = window.devicePixelRatio || 1;
-		const width = Math.round( sticky.clientWidth * ratio );
-		const height = Math.round( sticky.clientHeight * ratio );
+		const width = Math.round( canvas.clientWidth * ratio );
+		const height = Math.round( canvas.clientHeight * ratio );
 		if ( canvas.width !== width || canvas.height !== height ) {
 			canvas.width = width;
 			canvas.height = height;

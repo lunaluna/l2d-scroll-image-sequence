@@ -852,6 +852,29 @@ class L2dsis_Sequences {
 	}
 
 	/**
+	 * 1 コマ目の縦横比を、CSS の aspect-ratio に入れる形(例 "1280 / 720")で返す.
+	 *
+	 * SP の幅のとき、コマを幅いっぱいの枠に描くので、その枠の比率に使う(l2dsis_get_mobile_css()).
+	 * 読むのは 1 コマ目の画像の頭だけ(wp_getimagesize()).
+	 *
+	 * @param int $post_id シーケンスの投稿 ID.
+	 * @return string 縦横比. 読めなければ空.
+	 */
+	public static function get_frame_ratio( $post_id ) {
+		$files = self::get_frame_files( $post_id );
+		if ( empty( $files ) ) {
+			return '';
+		}
+
+		$size = wp_getimagesize( self::get_dir( $post_id ) . '/' . self::FRAMES_DIR . '/' . $files[0] );
+		if ( ! $size || empty( $size[0] ) || empty( $size[1] ) ) {
+			return '';
+		}
+
+		return absint( $size[0] ) . ' / ' . absint( $size[1] );
+	}
+
+	/**
 	 * PHP のアップロードのエラー番号を、画面に出す文に変える.
 	 *
 	 * @param int $error UPLOAD_ERR_* の値.
