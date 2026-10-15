@@ -12,6 +12,9 @@
  * - static(固定しない): 中身が画面に収まらないとき(画面が低い SP など). コマは読まず、1 コマ目の <picture> だけを
  *   見せる. 外側の箱は中身に合わせて伸びる. JS が動かないときも、この見え方になる(.is-pinned が付かないため)
  * コマが無いとき(.is-empty)は、ここに来ない.
+ *
+ * SP の幅では、中身の中の .l2dsis-after-mobile のブロックを、固定の区間の後ろ(.l2dsis-sequence__after)へ移す.
+ * 固定するときは、固定が終わったときに枠のすぐ下に並ぶよう、負の margin-top で寄せる(UK の A290 の SP と同じ).
  */
 
 /**
@@ -61,12 +64,22 @@ function parseFrames( json ) {
  * @param {HTMLElement} root .l2dsis-sequence の要素.
  */
 function setupSequence( root ) {
+	const track = root.querySelector( '.l2dsis-sequence__track' );
 	const sticky = root.querySelector( '.l2dsis-sequence__sticky' );
 	const media = root.querySelector( '.l2dsis-sequence__media' );
 	const content = root.querySelector( '.l2dsis-sequence__content' );
+	const after = root.querySelector( '.l2dsis-sequence__after' );
 	const canvas = root.querySelector( '.l2dsis-sequence__canvas' );
 	const context = canvas?.getContext( '2d' );
-	if ( ! sticky || ! media || ! content || ! canvas || ! context ) {
+	if (
+		! track ||
+		! sticky ||
+		! media ||
+		! content ||
+		! after ||
+		! canvas ||
+		! context
+	) {
 		return;
 	}
 
@@ -82,8 +95,15 @@ function setupSequence( root ) {
 	const reducedMotion = window.matchMedia(
 		'(prefers-reduced-motion: reduce)'
 	).matches;
-	// SP の配置が「縦に並べる」(中身の下に枠を置く)か. render.php が .is-mobile-stack を付ける.
-	const mobileStack = root.classList.contains( 'is-mobile-stack' );
+	// SP の幅で固定の区間の外(後ろの入れ物)へ移すブロックと、元の場所に置く目印(PC の幅で戻すため).
+	// UK の A290 の SP では、数値は固定した画面の外にあり、固定が終わると車のすぐ下に並ぶ(2026-10-15 の実測).
+	const afterMobileBlocks = [
+		...content.querySelectorAll( '.l2dsis-after-mobile' ),
+	].map( ( element ) => ( {
+		element,
+		marker: document.createComment( 'l2dsis-after-mobile' ),
+	} ) );
+	let blocksMovedAfter = false;
 
 	// 今の状態('reduced' / 'pinned' / 'static'). 最初は決まっていない.
 	let mode = '';
@@ -204,19 +224,53 @@ function setupSequence( root ) {
 
 	/**
 	 * 固定してよいか(固定したときに中身が固定する箱 = 100vh に収まるか)を判定する.
-	 *
-	 * 中身を重ねるとき: 中身の高さ ≦ 100vh.
-	 * 縦に並べるとき(SP の .is-mobile-stack): 中身の高さ + 間(--l2dsis-stack-gap) + 枠の高さ ≦ 100vh.
+	 * SP で .l2dsis-after-mobile を後ろの入れ物へ移したあとに呼ぶ(移したブロックは高さに入らない).
 	 *
 	 * @return {boolean} 固定してよいなら true.
 	 */
-	const fitsInViewport = () => {
-		let needed = measureContent();
-		if ( mobileStack && mobileQuery.matches ) {
-			const gap = parseFloat( window.getComputedStyle( sticky ).rowGap );
-			needed += ( Number.isNaN( gap ) ? 0 : gap ) + media.offsetHeight;
+	const fitsInViewport = () => measureContent() <= viewportProbe.offsetHeight;
+
+	/**
+	 * SP の幅では .l2dsis-after-mobile のブロックを後ろの入れ物へ移し、PC の幅では元の場所へ戻す.
+	 * 元の場所には目印(コメントノード)を置いておき、その直前へ戻す.
+	 */
+	const placeAfterMobileBlocks = () => {
+		const shouldMove = mobileQuery.matches && afterMobileBlocks.length > 0;
+		if ( shouldMove === blocksMovedAfter ) {
+			return;
 		}
-		return needed <= viewportProbe.offsetHeight;
+		blocksMovedAfter = shouldMove;
+
+		afterMobileBlocks.forEach( ( { element, marker } ) => {
+			if ( shouldMove ) {
+				element.before( marker );
+				after.appendChild( element );
+			} else {
+				marker.before( element );
+				marker.remove();
+			}
+		} );
+	};
+
+	/**
+	 * 後ろの入れ物を、枠の下端まで引き上げる(負の margin-top).
+	 *
+	 * 固定が終わったとき、固定する箱の下端は固定の区間の下端と同じ位置になる. 後ろの入れ物はその後ろに続くので、
+	 * 「固定する箱の下端 − 枠の下端」(枠の下の空き)だけ上へ寄せると、枠のすぐ下に並ぶ(UK の SP と同じ).
+	 * 枠は transform で中央に置いているので、offsetTop ではなく getBoundingClientRect() で測る.
+	 * 移したブロックが無いとき・固定しないとき(固定する箱が中身に合わせて伸びる)は寄せない.
+	 */
+	const alignAfter = () => {
+		let shift = 0;
+		if ( blocksMovedAfter && 'pinned' === mode ) {
+			const stickyRect = sticky.getBoundingClientRect();
+			const mediaRect = media.getBoundingClientRect();
+			shift = Math.max(
+				0,
+				Math.round( stickyRect.bottom - mediaRect.bottom )
+			);
+		}
+		after.style.marginTop = shift ? `${ -shift }px` : '';
 	};
 
 	// 最後に判定したときの「画面の幅 × 100vh」. これが変わったときだけ判定し直す(アドレスバーの出し入れでは変わらない).
@@ -252,7 +306,8 @@ function setupSequence( root ) {
 		if ( 'reduced' === mode ) {
 			return 1;
 		}
-		const rect = root.getBoundingClientRect();
+		// 外側の箱ではなく固定の区間で測る(外側の箱には後ろの入れ物も入っているため).
+		const rect = track.getBoundingClientRect();
 		const distance = rect.height - window.innerHeight;
 		if ( distance <= 0 ) {
 			return 0;
@@ -337,6 +392,9 @@ function setupSequence( root ) {
 	const updateMode = () => {
 		lastViewportKey = `${ window.innerWidth }x${ viewportProbe.offsetHeight }`;
 
+		// 固定できるかの判定の前に、SP なら .l2dsis-after-mobile を外へ出しておく.
+		placeAfterMobileBlocks();
+
 		let next = 'reduced';
 		if ( ! reducedMotion ) {
 			next = fitsInViewport() ? 'pinned' : 'static';
@@ -352,6 +410,7 @@ function setupSequence( root ) {
 		}
 
 		resizeCanvas();
+		alignAfter();
 		maybeStartLoading();
 		requestDraw();
 	};

@@ -108,7 +108,6 @@ export default function Edit( { attributes, setAttributes } ) {
 		scrollLength,
 		revealAt,
 		scrollLengthMobile,
-		mobileLayout,
 	} = attributes;
 	const { sequences, error } = useSequences();
 
@@ -234,38 +233,12 @@ export default function Edit( { attributes, setAttributes } ) {
 					title={ __( 'Small screens', 'l2d-scroll-image-sequence' ) }
 					initialOpen={ false }
 				>
-					<SelectControl
-						__next40pxDefaultSize
-						__nextHasNoMarginBottom
-						label={ __( 'Layout', 'l2d-scroll-image-sequence' ) }
-						help={ __(
-							'"Stack" places the frames below the blocks inside. The section is pinned only when the blocks (and the frames) fit in the screen height; otherwise it scrolls normally and shows the first frame.',
+					<p className="components-base-control__help">
+						{ __(
+							'On small screens, blocks inside with the "l2dsis-after-mobile" class move below the pinned area, right under the frames.',
 							'l2d-scroll-image-sequence'
 						) }
-						value={ mobileLayout }
-						options={ [
-							{
-								label: __(
-									'Overlay (frames behind the blocks)',
-									'l2d-scroll-image-sequence'
-								),
-								value: 'overlay',
-							},
-							{
-								label: __(
-									'Stack (frames below the blocks)',
-									'l2d-scroll-image-sequence'
-								),
-								value: 'stack',
-							},
-						] }
-						onChange={ ( value ) =>
-							setAttributes( {
-								mobileLayout:
-									'stack' === value ? 'stack' : 'overlay',
-							} )
-						}
-					/>
+					</p>
 					<RangeControl
 						__next40pxDefaultSize
 						__nextHasNoMarginBottom

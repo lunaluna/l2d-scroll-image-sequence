@@ -28,11 +28,6 @@
 		"scrollLengthMobile": {
 			"type": "number",
 			"default": 0
-		},
-		"mobileLayout": {
-			"type": "string",
-			"enum": [ "overlay", "stack" ],
-			"default": "overlay"
 		}
 	},
 	"supports": {

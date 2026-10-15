@@ -18,11 +18,19 @@
 	// コマを読み込む前や、シーケンスが無いときの下地.
 	// 後続のセクションが固定の HERO に重なるテーマでも透けないよう、不透明にする.
 	background-color: #000;
+}
 
-	// 固定するときだけ縦に伸ばす.
-	// 固定の 1 画面ぶん + コマを進めるスクロールの長さ(画面の高さ × --l2dsis-scroll-length).
-	// --l2dsis-scroll-length は render.php が style に入れる.
-	&.is-pinned {
+// =============================================================================
+// 固定の区間. 固定するときだけ縦に伸ばす
+// 固定の 1 画面ぶん + コマを進めるスクロールの長さ(画面の高さ × --l2dsis-scroll-length).
+// --l2dsis-scroll-length は render.php が style に入れる. 進み具合は view.js がこの区間で測る.
+// 外側の箱ではなくこの区間を伸ばすのは、後ろの入れ物(.l2dsis-sequence__after)を区間の後ろに続けるため.
+// =============================================================================
+
+.l2dsis-sequence__track {
+	position: relative;
+
+	.is-pinned > & {
 		height: calc(100vh * (1 + var(--l2dsis-scroll-length, 1.8)));
 	}
 }
@@ -36,7 +44,7 @@
 	position: relative;
 	min-height: 100vh;
 
-	.is-pinned > & {
+	.is-pinned & {
 		position: sticky;
 		top: 0;
 		height: 100vh;
@@ -108,9 +116,22 @@ img.l2dsis-sequence__poster {
 }
 
 // =============================================================================
+// 後ろの入れ物. SP の幅で view.js が中身の .l2dsis-after-mobile のブロックを移す
+// 固定の区間の後ろに普通に流れ、view.js が付ける負の margin-top で、固定が終わったときに枠のすぐ下に来る.
+// そのとき固定する箱の下のほう(枠の下の空き)に重なるので、固定する箱より上に描く.
+// =============================================================================
+
+.l2dsis-sequence__after {
+	display: flow-root;
+	position: relative;
+	z-index: 2;
+}
+
+// =============================================================================
 // フェードイン(中身のブロックに追加 CSS クラス l2dsis-reveal を付けたとき)
 // 進み具合が revealAt を超えると view.js が .is-revealed を付け、子要素が順に現れる.
-// 隠すのは .is-pinned のときだけ. JS が動かないときや、固定しないときは、ずっと見えている.
+// 隠すのは .is-pinned のときの、固定する箱の中だけ. JS が動かないときや、固定しないとき、
+// 後ろの入れ物に移ったブロック(SP の .l2dsis-after-mobile. UK の SP と同じくフェードインしない)は、ずっと見えている.
 // 時間は UK の 1 回の観測(現れ始めてから 350ms 後の不透明度が 1・0.97・0.74・0.11)からの見積もりで、未実測.
 // =============================================================================
 
@@ -121,7 +142,7 @@ $l2dsis-reveal-stagger: 0.1s;
 	transition: opacity $l2dsis-reveal-duration ease-out;
 }
 
-.is-pinned:not(.is-revealed) .l2dsis-reveal > * {
+.is-pinned:not(.is-revealed) .l2dsis-sequence__sticky .l2dsis-reveal > * {
 	opacity: 0;
 }
 
