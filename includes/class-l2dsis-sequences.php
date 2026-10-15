@@ -80,6 +80,13 @@ class L2dsis_Sequences {
 	);
 
 	/**
+	 * 関数 get_frame_files() の結果を、1 回のリクエストの中だけ覚えておく場所. キーは投稿 ID.
+	 *
+	 * @var array<int, string[]>
+	 */
+	private static $frame_files_cache = array();
+
+	/**
 	 * フックを登録する.
 	 *
 	 * @return void
@@ -396,6 +403,8 @@ class L2dsis_Sequences {
 			}
 
 			$swapped = self::swap_frames( $work_dir, $sequence_dir );
+			// 入れ替えに失敗して古いコマを戻した場合も含め、フォルダの中身が変わりうるので覚えた一覧を消す.
+			self::flush_frame_files_cache( $post_id );
 			if ( is_wp_error( $swapped ) ) {
 				return $swapped;
 			}
@@ -848,6 +857,7 @@ class L2dsis_Sequences {
 		}
 
 		self::delete_dir( self::get_dir( $post_id ) );
+		self::flush_frame_files_cache( $post_id );
 	}
 
 	/**
@@ -886,12 +896,40 @@ class L2dsis_Sequences {
 	/**
 	 * コマ画像のファイル名を、表示する順番(ファイル名の自然順)で返す.
 	 *
-	 * 保存時に一覧を作らず、表示のたびにフォルダを読む. 読む時間は Step 3 で実測する.
+	 * 保存時に一覧を作らず、表示のたびにフォルダを読む(投稿メタを使わない方針. 【A】の実測で 1 回 0.43ms).
+	 * 1 つのブロックの描画でも、PC 用・SP 用・縦横比の取得で同じフォルダを何度も読むので、
+	 * 1 回のリクエストの中だけ結果を覚えておく(2026-10-15 のレビューの指摘 4). リクエストをまたいでは覚えないので、
+	 * フォルダの中身と食い違わない. 同じリクエストの中でコマを入れ替えたときは flush_frame_files_cache() で消す.
 	 *
 	 * @param int $post_id 投稿 ID.
 	 * @return string[] ファイル名の配列. フォルダが無ければ空.
 	 */
 	public static function get_frame_files( $post_id ) {
+		$post_id = absint( $post_id );
+		if ( ! isset( self::$frame_files_cache[ $post_id ] ) ) {
+			self::$frame_files_cache[ $post_id ] = self::read_frame_files( $post_id );
+		}
+
+		return self::$frame_files_cache[ $post_id ];
+	}
+
+	/**
+	 * 関数 get_frame_files() が 1 回のリクエストの中で覚えた結果を消す.
+	 *
+	 * @param int $post_id 投稿 ID.
+	 * @return void
+	 */
+	public static function flush_frame_files_cache( $post_id ) {
+		unset( self::$frame_files_cache[ absint( $post_id ) ] );
+	}
+
+	/**
+	 * コマ画像のファイル名を、フォルダを読んで返す(get_frame_files() の中身).
+	 *
+	 * @param int $post_id 投稿 ID.
+	 * @return string[] ファイル名の配列. フォルダが無ければ空.
+	 */
+	private static function read_frame_files( $post_id ) {
 		$frames_dir = self::get_dir( $post_id ) . '/' . self::FRAMES_DIR;
 		if ( ! is_dir( $frames_dir ) ) {
 			return array();
