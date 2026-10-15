@@ -32,7 +32,10 @@ import './editor.scss';
 export default function Edit() {
 	return (
 		<p { ...useBlockProps() }>
-			{ __( 'Scroll Image Sequence – hello from the editor!', 'l2d-scroll-image-sequence' ) }
+			{ __(
+				'Scroll Image Sequence – hello from the editor!',
+				'l2d-scroll-image-sequence'
+			) }
 		</p>
 	);
 }
