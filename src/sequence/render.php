@@ -67,6 +67,13 @@ if ( '' !== $l2dsis_mobile_ratio ) {
 	$l2dsis_style .= '--l2dsis-mobile-ratio:' . $l2dsis_mobile_ratio . ';';
 }
 
+// SP の枠の最小の高さ(例 330px・100vh). 「数値 + 単位」だけを通す(l2dsis_sanitize_css_length()). 空なら出さない
+// (CSS の既定 0px = 今までどおりコマの比率の枠). テーマの CSS からも同じ変数で上書きできる.
+$l2dsis_mobile_min_height = l2dsis_sanitize_css_length( isset( $attributes['mobileMinHeight'] ) ? $attributes['mobileMinHeight'] : '' );
+if ( '' !== $l2dsis_mobile_min_height ) {
+	$l2dsis_style .= '--l2dsis-mobile-min-height:' . $l2dsis_mobile_min_height . ';';
+}
+
 $l2dsis_wrapper_attributes = get_block_wrapper_attributes(
 	array(
 		'class'              => 'l2dsis-sequence ' . ( $l2dsis_has_frames ? 'has-frames' : 'is-empty' ),

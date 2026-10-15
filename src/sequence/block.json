@@ -28,6 +28,10 @@
 		"scrollLengthMobile": {
 			"type": "number",
 			"default": 0
+		},
+		"mobileMinHeight": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"supports": {

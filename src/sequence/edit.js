@@ -19,6 +19,7 @@ import {
 	RangeControl,
 	SelectControl,
 	Spinner,
+	TextControl,
 } from '@wordpress/components';
 import { useEffect, useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
@@ -108,6 +109,7 @@ export default function Edit( { attributes, setAttributes } ) {
 		scrollLength,
 		revealAt,
 		scrollLengthMobile,
+		mobileMinHeight,
 	} = attributes;
 	const { sequences, error } = useSequences();
 
@@ -256,6 +258,23 @@ export default function Edit( { attributes, setAttributes } ) {
 						step={ 0.1 }
 						onChange={ ( value ) =>
 							setAttributes( { scrollLengthMobile: value ?? 0 } )
+						}
+					/>
+					{ /* 値の検査はフロントの render.php(l2dsis_sanitize_css_length())で行う. ここでは入力をそのまま持つ. */ }
+					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __(
+							'Minimum frame height',
+							'l2d-scroll-image-sequence'
+						) }
+						help={ __(
+							'A CSS length such as 330px or 100vh. The frame becomes full width and at least this tall (up to the screen height), and the frames are cropped to fill it. Leave empty to fit the whole frame. Other values are ignored.',
+							'l2d-scroll-image-sequence'
+						) }
+						value={ mobileMinHeight }
+						onChange={ ( value ) =>
+							setAttributes( { mobileMinHeight: value.trim() } )
 						}
 					/>
 				</PanelBody>

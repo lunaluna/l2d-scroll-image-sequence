@@ -123,15 +123,22 @@ function l2dsis_get_breakpoint() {
  *
  * 1. SP 用のスクロールの長さ: --l2dsis-scroll-length-mobile(属性 scrollLengthMobile. render.php が入れる)が
  *    あればそれを、無ければ PC と同じ --l2dsis-scroll-length を使う(固定の区間 .l2dsis-sequence__track の高さ)
- * 2. 枠(.l2dsis-sequence__media)は、コマを画面いっぱいに切り抜かず、コマの縦横比の枠にコマ全体を描き、
- *    固定する箱の上下左右中央に置く(UK の A290 ページの SP と同じ. 2026-10-15 ユーザー決定. UK の実測:
- *    390 × 844 で枠 390 × 265・上から 289px, 375 × 667 で枠 375 × 255・上から 206px = どちらも上下中央).
- *    縦横比は render.php が --l2dsis-mobile-ratio に入れる. 1 コマ目の <picture> も同じ枠に入るので、
- *    JS が動かないときも同じ見た目になる. 横向き(844 × 390 など)で幅に合わせると枠が画面より高くなり
- *    切り抜かれる(【A】の実測: 844 × 475)ので、幅は「100%」と「100vh × 縦横比」の小さいほうにする
+ * 2. 枠(.l2dsis-sequence__media)は、固定する箱の上下左右中央に置き、はみ出す分は cover で切り抜く
+ *    (canvas の描き方は view.js の draw(), JS なしの 1 コマ目は style.scss の object-fit: cover).
+ *    - 最小の高さ(--l2dsis-mobile-min-height. 属性 mobileMinHeight を render.php が入れる. テーマの CSS からも
+ *      上書きできる)があるとき: 幅 100%・高さ min(100vh, max(最小の高さ, 幅 × コマの比率)).
+ *      #19 は 330px(すべてのコマで車全体が入る上限 約 360px の内側), #21 は 100vh(Figma の SP どおり画面いっぱい).
+ *      根拠は【A】の実測(プランの Step 5 の途中経過. 2026-10-15 ユーザー決定)
+ *    - 無いとき: 今までどおり、コマの比率の枠にコマ全体を描く(UK の SP と同じ. UK の実測: 390 × 844 で
+ *      枠 390 × 265・上から 289px = 上下中央). 横向き(844 × 390 など)で幅に合わせると枠が画面より高くなり
+ *      切り抜かれる(【A】の実測: 844 × 475)ので、幅は「100%」と「100vh × 比率」の小さいほうにする
+ *    2 つを 1 つの式で書くため、幅 = max(min(100%, 100vh × 比率), min(100%, 最小の高さ × 1000)) にしている.
+ *    最小の高さが無ければ 2 つ目は 0 になって 1 つ目(今までの幅)になり、あれば 2 つ目が 100% になる.
+ *    幅の 100% は固定する箱の幅(container-type: inline-size にして 100cqw で測る. 高さの式でも使うため).
+ *    比率は render.php が --l2dsis-mobile-ratio に "1280 / 720" の形で入れるので、calc() の中でそのまま使える.
  *
- * 枠の下の空きへの .l2dsis-after-mobile のブロックの寄せ(負の margin-top)は、view.js が枠の位置を測って付ける.
- * 縦横比の変数は "1280 / 720" の形なので、calc() の中で掛け算・割り算としてそのまま使える.
+ * 枠の下の空きへの .l2dsis-after-mobile のブロックの寄せ(負の margin-top)は、view.js が枠の実際の位置
+ * (getBoundingClientRect())を測って付けるので、枠の高さが変わっても枠の下端から測られる.
  * 切り替え幅はフィルターで変えられるので、style.scss に決め打ちせずここで作る.
  *
  * 2026-10-15 に一度足した配置「縦に並べる」(mobileLayout: stack)は、UK に寄せる決定で消した(017ec0f にある).
@@ -145,14 +152,45 @@ function l2dsis_get_mobile_css() {
 		. '.l2dsis-sequence.is-pinned > .l2dsis-sequence__track {'
 		. 'height: calc(100vh * (1 + var(--l2dsis-scroll-length-mobile, var(--l2dsis-scroll-length, 1.8))));'
 		. '}'
-		// 2. 枠を上下左右中央に置く.
+		// 2. 枠の幅の 100% を、固定する箱の幅(100cqw)で測れるようにする.
+		. '.l2dsis-sequence__sticky {'
+		. 'container-type: inline-size;'
+		. '}'
+		// 2. 枠の大きさと置き方.
 		. '.l2dsis-sequence__media {'
+		. '--l2dsis-mobile-frame-width: max('
+		. 'min(100cqw, calc(100vh * var(--l2dsis-mobile-ratio, 16 / 9))),'
+		. 'min(100cqw, calc(var(--l2dsis-mobile-min-height, 0px) * 1000))'
+		. ');'
 		. 'top: 50%%; right: auto; bottom: auto; left: 50%%;'
-		. 'width: min(100%%, calc(100vh * var(--l2dsis-mobile-ratio, 16 / 9)));'
-		. 'aspect-ratio: var(--l2dsis-mobile-ratio, 16 / 9);'
+		. 'width: var(--l2dsis-mobile-frame-width);'
+		. 'height: min(100vh, max(var(--l2dsis-mobile-min-height, 0px), calc(var(--l2dsis-mobile-frame-width) / (var(--l2dsis-mobile-ratio, 16 / 9)))));'
 		. 'transform: translate(-50%%, -50%%);'
 		. '}'
 		. '}',
 		l2dsis_get_breakpoint()
 	);
+}
+
+/**
+ * 枠の最小の高さ(属性 mobileMinHeight)を、CSS の長さとして安全な形だけ通す.
+ *
+ * 「数値 + 単位」だけを受け付ける(例 330px・100vh・20.5rem). 単位は高さに使うものに絞る.
+ * % は親の高さが決まらない場面があるので受け付けない. 合わない値は空(= 最小の高さなし)にする.
+ * 出力は style 属性の CSS 変数で、get_block_wrapper_attributes() の中で safecss_filter_attr() と esc_attr() も通る.
+ *
+ * @param mixed $value 属性の値.
+ * @return string 通った値. 合わなければ空.
+ */
+function l2dsis_sanitize_css_length( $value ) {
+	if ( ! is_string( $value ) ) {
+		return '';
+	}
+
+	$value = strtolower( trim( $value ) );
+	if ( ! preg_match( '/^(?:\d+(?:\.\d+)?|\.\d+)(?:px|em|rem|vh|vw|svh|lvh|dvh|vmin|vmax)$/', $value ) ) {
+		return '';
+	}
+
+	return $value;
 }
