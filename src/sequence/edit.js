@@ -102,7 +102,14 @@ function toOptions( sequences, emptyLabel ) {
  * @return {Element} 編集画面の要素.
  */
 export default function Edit( { attributes, setAttributes } ) {
-	const { sequenceId, sequenceIdMobile, scrollLength, revealAt } = attributes;
+	const {
+		sequenceId,
+		sequenceIdMobile,
+		scrollLength,
+		revealAt,
+		scrollLengthMobile,
+		mobileLayout,
+	} = attributes;
 	const { sequences, error } = useSequences();
 
 	const selected = sequences?.find(
@@ -221,16 +228,76 @@ export default function Edit( { attributes, setAttributes } ) {
 						}
 					/>
 				</PanelBody>
+
+				{ /* SP の幅(既定 1024px 以下)だけに効く設定. 編集画面の見た目には出さない(フロントで確かめる). */ }
+				<PanelBody
+					title={ __( 'Small screens', 'l2d-scroll-image-sequence' ) }
+					initialOpen={ false }
+				>
+					<SelectControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Layout', 'l2d-scroll-image-sequence' ) }
+						help={ __(
+							'"Stack" places the frames below the blocks inside. The section is pinned only when the blocks (and the frames) fit in the screen height; otherwise it scrolls normally and shows the first frame.',
+							'l2d-scroll-image-sequence'
+						) }
+						value={ mobileLayout }
+						options={ [
+							{
+								label: __(
+									'Overlay (frames behind the blocks)',
+									'l2d-scroll-image-sequence'
+								),
+								value: 'overlay',
+							},
+							{
+								label: __(
+									'Stack (frames below the blocks)',
+									'l2d-scroll-image-sequence'
+								),
+								value: 'stack',
+							},
+						] }
+						onChange={ ( value ) =>
+							setAttributes( {
+								mobileLayout:
+									'stack' === value ? 'stack' : 'overlay',
+							} )
+						}
+					/>
+					<RangeControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __(
+							'Scroll length (× screen height)',
+							'l2d-scroll-image-sequence'
+						) }
+						help={ __(
+							'0 uses the same scroll length as large screens.',
+							'l2d-scroll-image-sequence'
+						) }
+						value={ scrollLengthMobile }
+						min={ 0 }
+						max={ 5 }
+						step={ 0.1 }
+						onChange={ ( value ) =>
+							setAttributes( { scrollLengthMobile: value ?? 0 } )
+						}
+					/>
+				</PanelBody>
 			</InspectorControls>
 
 			<div { ...blockProps }>
 				<div className="l2dsis-sequence__sticky">
 					{ selected?.first_frame ? (
-						<img
-							className="l2dsis-sequence__poster"
-							src={ selected.first_frame }
-							alt=""
-						/>
+						<div className="l2dsis-sequence__media">
+							<img
+								className="l2dsis-sequence__poster"
+								src={ selected.first_frame }
+								alt=""
+							/>
+						</div>
 					) : (
 						<p className="l2dsis-sequence__placeholder">
 							{ __(

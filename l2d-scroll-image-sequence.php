@@ -121,25 +121,48 @@ function l2dsis_get_breakpoint() {
 /**
  * SP の幅のときの CSS.
  *
- * UK の A290 ページの SP と同じく、コマを画面いっぱいに切り抜かず、幅いっぱいの横長の枠(コマの縦横比)に
- * コマ全体を描き、その枠を固定する箱の上下中央に置く(2026-10-15 ユーザー決定. UK の実測: 390 × 844 の画面で
- * 枠 390 × 265・上から 289px = 上下中央). 枠の縦横比は render.php が --l2dsis-mobile-ratio に入れる.
- * 1 コマ目の <picture> も同じ枠にするので、JS が動かないときも同じ見た目になる.
+ * 1. SP 用のスクロールの長さ: --l2dsis-scroll-length-mobile(属性 scrollLengthMobile. render.php が入れる)が
+ *    あればそれを、無ければ PC と同じ --l2dsis-scroll-length を使う
+ * 2. 枠(.l2dsis-sequence__media)は、コマを画面いっぱいに切り抜かず、コマの縦横比の枠にコマ全体を描く
+ *    (UK の A290 ページの SP と同じ. 2026-10-15 ユーザー決定). 縦横比は render.php が --l2dsis-mobile-ratio に入れる.
+ *    1 コマ目の <picture> も同じ枠に入るので、JS が動かないときも同じ見た目になる
+ *    - 配置「重ねる」(既定): 枠を固定する箱の上下左右中央に置き、中身を重ねる(UK の実測: 390 × 844 の画面で
+ *      枠 390 × 265・上から 289px = 上下中央). 横向き(844 × 390 など)で幅に合わせると枠が画面より高くなり
+ *      切り抜かれる(【A】の実測: 844 × 475)ので、幅は「100%」と「100vh × 縦横比」の小さいほうにする
+ *    - 配置「縦に並べる」(.is-mobile-stack): 中身の下に、幅いっぱいの枠を置く(Figma の SP は見出しと数値を
+ *      縦 1 列に並べるだけなので、その下に車を足す. 2026-10-15 ユーザー決定). 中身と枠の間は
+ *      --l2dsis-stack-gap(既定 0. テーマが決める). 固定しないときは、固定する箱を中身と枠の高さに合わせる
+ *      (1 画面に引き伸ばさない). 固定するかは view.js が「中身 + 間 + 枠 ≦ 画面の高さ」で決める
  *
- * 横向き(844 × 390 など)で幅に合わせると枠が画面より高くなり、上下が切り抜かれる(【A】の実測: 枠 844 × 475).
- * そのため枠の幅は「100%」と「固定する箱の高さ(100vh) × 縦横比」の小さいほうにし、左右も中央に置く.
  * 縦横比の変数は "1280 / 720" の形なので、calc() の中で掛け算・割り算としてそのまま使える.
+ * 切り替え幅はフィルターで変えられるので、style.scss に決め打ちせずここで作る.
  *
  * @return string CSS.
  */
 function l2dsis_get_mobile_css() {
 	return sprintf(
 		'@media (max-width: %dpx) {'
-		. '.l2dsis-sequence__poster, .l2dsis-sequence__canvas {'
+		// 1. SP 用のスクロールの長さ.
+		. '.l2dsis-sequence.is-pinned {'
+		. 'height: calc(100vh * (1 + var(--l2dsis-scroll-length-mobile, var(--l2dsis-scroll-length, 1.8))));'
+		. '}'
+		// 2. 配置「重ねる」: 枠を上下左右中央に置く.
+		. '.l2dsis-sequence:not(.is-mobile-stack) .l2dsis-sequence__media {'
 		. 'top: 50%%; right: auto; bottom: auto; left: 50%%;'
-		. 'width: min(100%%, calc(100vh * var(--l2dsis-mobile-ratio, 16 / 9))); height: auto;'
+		. 'width: min(100%%, calc(100vh * var(--l2dsis-mobile-ratio, 16 / 9)));'
 		. 'aspect-ratio: var(--l2dsis-mobile-ratio, 16 / 9);'
 		. 'transform: translate(-50%%, -50%%);'
+		. '}'
+		// 2. 配置「縦に並べる」: 中身 → 枠の順に縦に並べる.
+		. '.l2dsis-sequence.is-mobile-stack .l2dsis-sequence__sticky {'
+		. 'display: flex; flex-direction: column; gap: var(--l2dsis-stack-gap, 0px); min-height: 0;'
+		. '}'
+		. '.l2dsis-sequence.is-mobile-stack .l2dsis-sequence__content {'
+		. 'order: 0; min-height: 0; height: auto;'
+		. '}'
+		. '.l2dsis-sequence.is-mobile-stack .l2dsis-sequence__media {'
+		. 'position: relative; inset: auto; order: 1; flex: none; width: 100%%;'
+		. 'aspect-ratio: var(--l2dsis-mobile-ratio, 16 / 9);'
 		. '}'
 		. '}',
 		l2dsis_get_breakpoint()

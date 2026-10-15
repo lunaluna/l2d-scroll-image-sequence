@@ -24,6 +24,15 @@
 		"revealAt": {
 			"type": "number",
 			"default": 0.6
+		},
+		"scrollLengthMobile": {
+			"type": "number",
+			"default": 0
+		},
+		"mobileLayout": {
+			"type": "string",
+			"enum": [ "overlay", "stack" ],
+			"default": "overlay"
 		}
 	},
 	"supports": {
