@@ -5,7 +5,7 @@
  * Description:       Plays an image sequence on a canvas in sync with page scroll while the section is pinned.
  * Version:           0.1.0
  * Requires at least: 6.7
- * Tested up to:      7.1
+ * Tested up to:      7.1.3
  * Requires PHP:      7.4
  * Author:            lunaluna_dev
  * Author URI:        https://profiles.wordpress.org/lunaluna_dev/
@@ -43,6 +43,12 @@ add_action( 'init', 'l2dsis_load_textdomain' );
  */
 require_once plugin_dir_path( __FILE__ ) . 'includes/functions-activation.php';
 register_activation_hook( __FILE__, 'l2dsis_check_environment' );
+
+/**
+ * 投稿タイプ「画像シーケンス」と、コマ画像の ZIP の取り込み.
+ */
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-l2dsis-sequences.php';
+L2dsis_Sequences::init();
 
 /**
  * GitHub Releases ベースの自己更新機構の読み込み(l2d-wp-github-update-lib).

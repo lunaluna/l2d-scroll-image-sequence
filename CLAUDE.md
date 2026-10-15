@@ -26,7 +26,7 @@
 - Node は mise(`mise.toml`). 古いセッションで `node -v` が v14 になるときは `export PATH="$(mise where node)/bin:$PATH"` を前に付ける
 - `npm install`・`composer install` は、サンドボックスの中では npm のレジストリなどへの接続が拒否されるので、サンドボックスの外で実行する
 - **`build/` はコミットする**. 共有のリリース用ワークフロー(`l2d-wp-github-update-lib` の `plugin-release.yml`)は Node のビルド工程を持たず、作業ツリーを `.distignore` で絞って ZIP にするため. `src/` を変えたら `npm run build` してから `build/` も一緒にコミットする
-- 関数・定数の接頭辞は `l2dsis` / `L2DSIS_`. クラスは `L2dsis_*`. フィルターは `l2dsis/...`
+- 関数・定数の接頭辞は `l2dsis` / `L2DSIS_`. クラスは `L2dsis_*`. フィルターは `l2dsis_...`(WPCS の `_` 区切り)
 - `lib/l2d-updater/` は `git subtree` で取り込んだ更新ライブラリ. 直接編集しない(更新は `git subtree pull --prefix=lib/l2d-updater https://github.com/lunaluna/l2d-wp-github-update-lib.git dist-X.Y.Z --squash`)
 - `main` へ直接コミットしない. 作業ブランチで進め、`git merge --no-ff` で入れる
 - タグと Release 名に `v` を付けない(`0.1.0`)
