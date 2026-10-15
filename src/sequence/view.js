@@ -13,7 +13,7 @@
  *   見せる. 外側の箱は中身に合わせて伸びる. JS が動かないときも、この見え方になる(.is-pinned が付かないため)
  * コマが無いとき(.is-empty)は、ここに来ない.
  *
- * SP の幅では、中身の中の .l2dsis-after-mobile のブロックを、固定の区間の後ろ(.l2dsis-sequence__after)へ移す.
+ * SP の幅では、中身の直下の .l2dsis-after-mobile のブロックを、固定の区間の後ろ(.l2dsis-sequence__after)へ移す.
  * 固定するときは、固定が終わったときに枠のすぐ下に並ぶよう、負の margin-top で寄せる(UK の A290 の SP と同じ).
  */
 
@@ -97,8 +97,11 @@ function setupSequence( root ) {
 	).matches;
 	// SP の幅で固定の区間の外(後ろの入れ物)へ移すブロックと、元の場所に置く目印(PC の幅で戻すため).
 	// UK の A290 の SP では、数値は固定した画面の外にあり、固定が終わると車のすぐ下に並ぶ(2026-10-15 の実測).
+	// 移すのは中身の直下のブロックだけ. グループの中のブロックを移すと、親から外れて親のクラスに頼る
+	// テーマの CSS が SP でだけ効かなくなり、編集画面とも構造が食い違うため. テーマのクラスを持つグループは、
+	// このブロックの外側に置けば、移したあとも親子関係が変わらない.
 	const afterMobileBlocks = [
-		...content.querySelectorAll( '.l2dsis-after-mobile' ),
+		...content.querySelectorAll( ':scope > .l2dsis-after-mobile' ),
 	].map( ( element ) => ( {
 		element,
 		marker: document.createComment( 'l2dsis-after-mobile' ),

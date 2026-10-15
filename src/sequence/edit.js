@@ -235,7 +235,7 @@ export default function Edit( { attributes, setAttributes } ) {
 				>
 					<p className="components-base-control__help">
 						{ __(
-							'On small screens, blocks inside with the "l2dsis-after-mobile" class move below the pinned area, right under the frames.',
+							'On small screens, top-level blocks inside with the "l2dsis-after-mobile" class move below the pinned area, right under the frames. Blocks nested in a group are not moved: put a group that carries your theme classes outside this block instead.',
 							'l2d-scroll-image-sequence'
 						) }
 					</p>

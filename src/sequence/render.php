@@ -12,7 +12,7 @@
  *   │   └ 中身(InnerBlocks の $content)
  *   └ 後ろの入れ物(.l2dsis-sequence__after. 最初は空)
  *
- * SP の幅(l2dsis_get_breakpoint() 以下)では、view.js が中身の .l2dsis-after-mobile のブロックを「後ろの入れ物」へ移し、
+ * SP の幅(l2dsis_get_breakpoint() 以下)では、view.js が中身の直下の .l2dsis-after-mobile のブロックを「後ろの入れ物」へ移し、
  * 固定が終わったときに枠のすぐ下に並ぶよう負の margin-top を付ける(UK の A290 の SP と同じ. 2026-10-15 ユーザー決定).
  * SP の枠の CSS はメインファイルの l2dsis_get_mobile_css(). 枠の縦横比はここで --l2dsis-mobile-ratio に入れる.
  * 固定するかどうかは view.js が、中身が 100vh に収まるかで決める.
