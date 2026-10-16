@@ -40,6 +40,20 @@ abstract class L2dsis_Test_Case extends TestCase {
 		$cache = new ReflectionProperty( 'L2dsis_Sequences', 'frame_files_cache' );
 		$cache->setAccessible( true );
 		$cache->setValue( null, array() );
+
+		// お知らせのトークン(リクエストごと)を空にする. テストどうしを別のリクエストとして扱うため.
+		$this->reset_notice_token();
+	}
+
+	/**
+	 * お知らせのトークンを空にする(次の保存を、別のリクエストとして扱う).
+	 *
+	 * @return void
+	 */
+	protected function reset_notice_token() {
+		$token = new ReflectionProperty( 'L2dsis_Sequences', 'notice_token' );
+		$token->setAccessible( true );
+		$token->setValue( null, '' );
 	}
 
 	/**

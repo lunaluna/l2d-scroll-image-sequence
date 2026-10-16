@@ -49,6 +49,10 @@ function l2dsis_test_default_state() {
 		'is_preview'  => false,
 		// get_posts() の戻り値.
 		'posts'       => array(),
+		// set_transient() で入れた値. キーは transient の名前.
+		'transients'  => array(),
+		// get_current_user_id() の戻り値.
+		'user_id'     => 1,
 	);
 }
 
@@ -358,6 +362,159 @@ function get_posts( $args = array() ) {
  */
 function rest_ensure_response( $response ) {
 	return $response;
+}
+
+/**
+ * Set_transient() のスタブ. 状態の transients に入れる(有効期限は見ない).
+ *
+ * @param string $transient  名前.
+ * @param mixed  $value      値.
+ * @param int    $expiration 有効期限(使わない).
+ * @return bool 常に true.
+ */
+function set_transient( $transient, $value, $expiration = 0 ) {
+	$GLOBALS['l2dsis_test']['transients'][ $transient ] = $value;
+	return true;
+}
+
+/**
+ * Get_transient() のスタブ.
+ *
+ * @param string $transient 名前.
+ * @return mixed 値. 無ければ false.
+ */
+function get_transient( $transient ) {
+	return array_key_exists( $transient, $GLOBALS['l2dsis_test']['transients'] ) ? $GLOBALS['l2dsis_test']['transients'][ $transient ] : false;
+}
+
+/**
+ * Delete_transient() のスタブ.
+ *
+ * @param string $transient 名前.
+ * @return bool 消したら true.
+ */
+function delete_transient( $transient ) {
+	$exists = array_key_exists( $transient, $GLOBALS['l2dsis_test']['transients'] );
+	unset( $GLOBALS['l2dsis_test']['transients'][ $transient ] );
+	return $exists;
+}
+
+/**
+ * Get_current_user_id() のスタブ.
+ *
+ * @return int ユーザー ID.
+ */
+function get_current_user_id() {
+	return $GLOBALS['l2dsis_test']['user_id'];
+}
+
+/**
+ * Wp_generate_uuid4() のスタブ. 本物と同じ形(英小文字・数字・- の 36 文字).
+ *
+ * @return string UUID.
+ */
+function wp_generate_uuid4() {
+	$hex = bin2hex( random_bytes( 16 ) );
+	return substr( $hex, 0, 8 ) . '-' . substr( $hex, 8, 4 ) . '-4' . substr( $hex, 13, 3 ) . '-a' . substr( $hex, 17, 3 ) . '-' . substr( $hex, 20, 12 );
+}
+
+/**
+ * Add_query_arg() のスタブ. 3 つの引数(名前・値・URL)の形だけ.
+ *
+ * @param string $key   名前.
+ * @param string $value 値.
+ * @param string $url   URL.
+ * @return string URL.
+ */
+function add_query_arg( $key, $value, $url ) {
+	return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . rawurlencode( $key ) . '=' . rawurlencode( $value );
+}
+
+/**
+ * Sanitize_text_field() のスタブ. タグを除いて前後の空白を取る.
+ *
+ * @param string $str 文字列.
+ * @return string 文字列.
+ */
+function sanitize_text_field( $str ) {
+	return trim( strip_tags( (string) $str ) );
+}
+
+/**
+ * Wp_unslash() のスタブ.
+ *
+ * @param string $value 値.
+ * @return string 値.
+ */
+function wp_unslash( $value ) {
+	return stripslashes( $value );
+}
+
+/**
+ * Esc_html() のスタブ.
+ *
+ * @param string $text 文字列.
+ * @return string エスケープした文字列.
+ */
+function esc_html( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+
+/**
+ * Esc_attr() のスタブ.
+ *
+ * @param string $text 文字列.
+ * @return string エスケープした文字列.
+ */
+function esc_attr( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+
+/**
+ * Esc_url() のスタブ. そのまま返す.
+ *
+ * @param string $url URL.
+ * @return string URL.
+ */
+function esc_url( $url ) {
+	return $url;
+}
+
+/**
+ * Wp_admin_notice() のスタブ. 種類と文を div で出す.
+ *
+ * @param string $message 文.
+ * @param array  $args    type など.
+ * @return void
+ */
+function wp_admin_notice( $message, $args = array() ) {
+	echo '<div class="notice notice-' . esc_attr( $args['type'] ) . '">' . $message . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+/**
+ * Wp_json_encode() のスタブ. PHP の json_encode() そのもの.
+ *
+ * @param mixed $data  値.
+ * @param int   $flags json_encode() のフラグ.
+ * @return string|false JSON.
+ */
+function wp_json_encode( $data, $flags = 0 ) {
+	return json_encode( $data, $flags ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+}
+
+/**
+ * Get_block_wrapper_attributes() のスタブ. 本物と同じく、値を esc_attr() して「名前="値"」を空白でつなぐ
+ * (wp-includes/class-wp-block-supports.php). ブロックの supports による class・style の足し込みはしない.
+ *
+ * @param array<string, string> $extra_attributes 属性.
+ * @return string 属性の文字列.
+ */
+function get_block_wrapper_attributes( $extra_attributes = array() ) {
+	$parts = array();
+	foreach ( $extra_attributes as $name => $value ) {
+		$parts[] = $name . '="' . esc_attr( $value ) . '"';
+	}
+	return implode( ' ', $parts );
 }
 
 // $GLOBALS['wp_query'] は、get_sequence_frame_urls() が is_preview() を呼んでよいかの判定に使う.

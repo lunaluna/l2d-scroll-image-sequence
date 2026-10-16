@@ -67,6 +67,11 @@ class L2dsis_Sequences {
 	const NOTICE_TRANSIENT = 'l2dsis_notice_';
 
 	/**
+	 * 保存のあとの移動先の URL に付ける、お知らせのトークンの引数の名前.
+	 */
+	const NOTICE_QUERY_ARG = 'l2dsis_notice';
+
+	/**
 	 * コマとして受け付ける拡張子と MIME タイプ.
 	 *
 	 * 形は wp_check_filetype_and_ext() の $mimes と同じ(キーは拡張子の正規表現). 画像は中身の MIME も調べられる.
@@ -87,6 +92,13 @@ class L2dsis_Sequences {
 	private static $frame_files_cache = array();
 
 	/**
+	 * このリクエスト(保存)で作ったお知らせのトークン. まだ作っていなければ空. set_notice() を参照.
+	 *
+	 * @var string
+	 */
+	private static $notice_token = '';
+
+	/**
 	 * フックを登録する.
 	 *
 	 * @return void
@@ -98,6 +110,8 @@ class L2dsis_Sequences {
 		add_action( 'save_post_' . self::POST_TYPE, array( __CLASS__, 'save' ) );
 		add_action( 'before_delete_post', array( __CLASS__, 'delete_files' ), 10, 2 );
 		add_action( 'admin_notices', array( __CLASS__, 'render_notice' ) );
+		add_filter( 'redirect_post_location', array( __CLASS__, 'add_notice_to_redirect' ), 10, 2 );
+		add_filter( 'removable_query_args', array( __CLASS__, 'add_removable_query_arg' ) );
 
 		// admin_post_{action} はログインしているときだけ呼ばれる(wp-admin/admin-post.php). nopriv は登録しない.
 		add_action( 'admin_post_' . self::DOWNLOAD_ACTION, array( __CLASS__, 'download_frames' ) );
@@ -1177,15 +1191,24 @@ class L2dsis_Sequences {
 	 * 保存結果のお知らせを、次に開いた管理画面で出せるように取っておく.
 	 *
 	 * 保存のあとは post.php へリダイレクトされるので、その場では出せない.
-	 * ユーザーごとの短い transient に入れる(投稿メタは使わない).
+	 * 保存のリクエストごとのトークンを作り、ユーザー ID とトークンの名前の短い transient に入れる(投稿メタは使わない).
+	 * トークンは add_notice_to_redirect() が移動先の URL に付け、render_notice() がその URL の分だけを出す.
+	 *
+	 * 2026-10-16【A】の指摘: 以前はユーザーごとに 1 つ(l2dsis_notice_{ユーザー ID})だったので、同じユーザーが
+	 * 2 つのタブで同時に保存すると、断りの通知が先のタブの成功の通知で上書きされ、断られたタブに「取り込みました」が出た.
 	 *
 	 * @param string $type    'success' か 'error'.
 	 * @param string $message 出す文.
 	 * @return void
 	 */
 	private static function set_notice( $type, $message ) {
+		if ( '' === self::$notice_token ) {
+			// 英小文字・数字・- だけの 36 文字. URL でそのまま運べ、render_notice() の形の確かめにも合う.
+			self::$notice_token = wp_generate_uuid4();
+		}
+
 		set_transient(
-			self::NOTICE_TRANSIENT . get_current_user_id(),
+			self::get_notice_key( get_current_user_id(), self::$notice_token ),
 			array(
 				'type'    => $type,
 				'message' => $message,
@@ -1195,12 +1218,64 @@ class L2dsis_Sequences {
 	}
 
 	/**
-	 * 取っておいたお知らせを出して、消す.
+	 * お知らせの transient の名前. ユーザー ID とトークンで分ける.
+	 *
+	 * アンインストール(uninstall.php)は名前の頭(_transient_l2dsis_notice_)で探して消すので、頭は変えない.
+	 *
+	 * @param int    $user_id ユーザー ID.
+	 * @param string $token   保存のリクエストごとのトークン.
+	 * @return string transient の名前.
+	 */
+	private static function get_notice_key( $user_id, $token ) {
+		return self::NOTICE_TRANSIENT . absint( $user_id ) . '_' . $token;
+	}
+
+	/**
+	 * 保存のあとの移動先(編集画面)の URL に、このリクエストのお知らせのトークンを付ける.
+	 *
+	 * フィルター redirect_post_location(wp-admin/includes/post.php の redirect_post()). このリクエストで
+	 * お知らせを作っていて、画像シーケンスの投稿のときだけ付ける.
+	 *
+	 * @param string $location 移動先の URL.
+	 * @param int    $post_id  投稿 ID.
+	 * @return string 移動先の URL.
+	 */
+	public static function add_notice_to_redirect( $location, $post_id ) {
+		if ( '' === self::$notice_token || self::POST_TYPE !== get_post_type( $post_id ) ) {
+			return $location;
+		}
+		return add_query_arg( self::NOTICE_QUERY_ARG, self::$notice_token, $location );
+	}
+
+	/**
+	 * お知らせを出したあとで、アドレス欄の URL からトークンを消す(再読み込みや共有で残らないように).
+	 *
+	 * フィルター removable_query_args(wp-includes/functions.php の wp_removable_query_args()).
+	 *
+	 * @param string[] $args URL から消す引数の名前.
+	 * @return string[] 引数の名前.
+	 */
+	public static function add_removable_query_arg( $args ) {
+		$args[] = self::NOTICE_QUERY_ARG;
+		return $args;
+	}
+
+	/**
+	 * 取っておいたお知らせのうち、今の URL のトークンの分だけを出して、消す.
+	 *
+	 * URL にトークンが無ければ何も出さない. トークンは、英小文字・数字・- だけの形のときだけ使う.
+	 * 読めるのは自分のユーザー ID の transient だけ(名前にユーザー ID が入っている).
 	 *
 	 * @return void
 	 */
 	public static function render_notice() {
-		$key    = self::NOTICE_TRANSIENT . get_current_user_id();
+		// 表示するだけで何も変えないので nonce は使わない. 値は形を確かめ、自分の transient の名前にしか使わない.
+		$token = isset( $_GET[ self::NOTICE_QUERY_ARG ] ) ? sanitize_text_field( wp_unslash( $_GET[ self::NOTICE_QUERY_ARG ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- 上のコメントを参照.
+		if ( ! preg_match( '/^[a-z0-9-]{1,64}$/', $token ) ) {
+			return;
+		}
+
+		$key    = self::get_notice_key( get_current_user_id(), $token );
 		$notice = get_transient( $key );
 		if ( ! is_array( $notice ) || empty( $notice['message'] ) ) {
 			return;
