@@ -26,6 +26,10 @@
  * @package L2dScrollImageSequence
  */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // セキュリティ: 直接アクセスを防止.
+}
+
 $l2dsis_sequence_id        = isset( $attributes['sequenceId'] ) ? absint( $attributes['sequenceId'] ) : 0;
 $l2dsis_sequence_id_mobile = isset( $attributes['sequenceIdMobile'] ) ? absint( $attributes['sequenceIdMobile'] ) : 0;
 
