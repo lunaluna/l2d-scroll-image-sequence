@@ -79,8 +79,11 @@ $l2dsis_wrapper_attributes = get_block_wrapper_attributes(
 		'class'              => 'l2dsis-sequence ' . ( $l2dsis_has_frames ? 'has-frames' : 'is-empty' ),
 		'style'              => $l2dsis_style,
 		// 値は get_block_wrapper_attributes() の中で esc_attr() される(wp-includes/class-wp-block-supports.php).
-		'data-frames'        => $l2dsis_has_frames ? wp_json_encode( $l2dsis_frames ) : '',
-		'data-frames-mobile' => ! empty( $l2dsis_frames_mobile ) ? wp_json_encode( $l2dsis_frames_mobile ) : '',
+		// コマの URL は JSON_UNESCAPED_SLASHES で、普通の URL の形(http://…)のまま出す. 既定の http:\/\/… の形だと、
+		// HTML の中の URL を書き換える仕組み(Local の Live Link・CDN 系のプラグイン)が書き換えられず、別のホストの
+		// 画像を取りに行ってしまう(2026-10-16【A】の指摘. Live Link でスマホから開くとコマだけ読み込まれなかった).
+		'data-frames'        => $l2dsis_has_frames ? wp_json_encode( $l2dsis_frames, JSON_UNESCAPED_SLASHES ) : '',
+		'data-frames-mobile' => ! empty( $l2dsis_frames_mobile ) ? wp_json_encode( $l2dsis_frames_mobile, JSON_UNESCAPED_SLASHES ) : '',
 		'data-breakpoint'    => (string) $l2dsis_breakpoint,
 		'data-reveal-at'     => wp_json_encode( $l2dsis_reveal_at ),
 	)
