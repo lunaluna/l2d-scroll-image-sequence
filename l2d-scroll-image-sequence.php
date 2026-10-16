@@ -5,7 +5,7 @@
  * Description:       Plays an image sequence on a canvas in sync with page scroll while the section is pinned.
  * Version:           1.0.0
  * Requires at least: 6.7
- * Tested up to:      7.1.3
+ * Tested up to:      7.1
  * Requires PHP:      7.4
  * Author:            lunaluna_dev
  * Author URI:        https://profiles.wordpress.org/lunaluna_dev/

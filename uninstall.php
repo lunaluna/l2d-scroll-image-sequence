@@ -34,14 +34,15 @@ function l2dsis_uninstall_site() {
 
 	// 1. 投稿. 投稿タイプは登録されていないが、post_type を指定した取得と wp_delete_post() はそのまま使える.
 	// 'any' はゴミ箱と自動下書きを含まないので、状態を並べて指定する.
+	// get_posts() は suppress_filters の既定値が true なので、ほかのプラグインの絞り込みは効かない
+	// (wp-includes/post.php. 明示すると Plugin Check の WordPressVIPMinimum のエラーになるので書かない).
 	$post_ids = get_posts(
 		array(
-			'post_type'        => 'l2dsis_sequence',
-			'post_status'      => array( 'publish', 'future', 'draft', 'pending', 'private', 'trash', 'auto-draft', 'inherit' ),
-			'posts_per_page'   => -1,
-			'fields'           => 'ids',
-			'no_found_rows'    => true,
-			'suppress_filters' => true,
+			'post_type'      => 'l2dsis_sequence',
+			'post_status'    => array( 'publish', 'future', 'draft', 'pending', 'private', 'trash', 'auto-draft', 'inherit' ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
 		)
 	);
 	foreach ( $post_ids as $post_id ) {

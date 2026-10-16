@@ -144,4 +144,5 @@ jobs:
           exclude-files: '.editorconfig,.gitignore,.distignore,composer.json,composer.lock,package.json,package-lock.json,phpcs.xml.dist,phpstan.neon.dist,phpunit.xml.dist,vitest.config.mjs,mise.toml,CLAUDE.md'
           # Update URI: false を保ったまま GitHub Releases から自己更新する意図的な実装
           # (forced-auto-update-controller と同じ). 既知の false positive として無視する.
-          ignore-codes: 'plugin_updater_detected'
+          # load_plugin_textdomain() は WordPress.org に無いプラグインで、languages/ に同梱した翻訳を読むために要るので無視する.
+          ignore-codes: 'plugin_updater_detected,PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound'
