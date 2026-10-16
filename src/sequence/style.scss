@@ -1,12 +1,164 @@
 /**
- * The following styles get applied both on the front of your site
- * and in the editor.
+ * ブロック l2d-scroll-image-sequence/sequence の CSS(フロントと編集画面の両方に効く).
  *
- * Replace them with your own styles or remove the file completely.
+ * 持つのは固定・canvas・重ね方・フェードインだけ. 見出しや数値の文字組みは各サイトのテーマが持つ
+ * (alpine2026 では model-a290.scss). 外側の箱には追加 CSS クラスでテーマのクラスを付ける.
+ *
+ * 固定するとき(.is-pinned. view.js が、中身が画面に収まるときだけ付ける)と、固定しないとき
+ * (JS が動かないとき・視差効果を減らすとき・中身が画面に収まらないとき)で作りを分ける.
+ * SP の幅の CSS(枠の置き方・SP 用のスクロールの長さ)は、メインファイルの l2dsis_get_mobile_css().
  */
 
-.wp-block-l2d-scroll-image-sequence-sequence {
-	background-color: #21759b;
-	color: #fff;
-	padding: 2px;
+// =============================================================================
+// 外側の箱
+// =============================================================================
+
+.l2dsis-sequence {
+	position: relative;
+	// コマを読み込む前や、シーケンスが無いときの下地.
+	// 後続のセクションが固定の HERO に重なるテーマでも透けないよう、不透明にする.
+	background-color: #000;
+}
+
+// =============================================================================
+// 固定の区間. 固定するときだけ縦に伸ばす
+// 固定の 1 画面ぶん + コマを進めるスクロールの長さ(画面の高さ × --l2dsis-scroll-length).
+// --l2dsis-scroll-length は render.php が style に入れる. 進み具合は view.js がこの区間で測る.
+// 外側の箱ではなくこの区間を伸ばすのは、後ろの入れ物(.l2dsis-sequence__after)を区間の後ろに続けるため.
+// =============================================================================
+
+.l2dsis-sequence__track {
+	position: relative;
+
+	.is-pinned > & {
+		height: calc(100vh * (1 + var(--l2dsis-scroll-length, 1.8)));
+	}
+}
+
+// =============================================================================
+// 固定する箱
+// 固定しないときは、少なくとも 1 画面ぶんの高さで、中身が高ければそれに合わせて伸びる(中身を切らない).
+// =============================================================================
+
+.l2dsis-sequence__sticky {
+	position: relative;
+	min-height: 100vh;
+
+	.is-pinned & {
+		position: sticky;
+		top: 0;
+		height: 100vh;
+		overflow: hidden;
+	}
+}
+
+// =============================================================================
+// 枠(1 コマ目と canvas を入れる). PC では固定する箱いっぱいに重ねる
+// =============================================================================
+
+.l2dsis-sequence__media {
+	position: absolute;
+	inset: 0;
+}
+
+// 1 コマ目と canvas は、枠いっぱいに重ねる.
+.l2dsis-sequence__poster,
+.l2dsis-sequence__canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.l2dsis-sequence__poster {
+	display: block;
+
+	// <picture> の中の <img>. canvas と同じく、枠を埋めるように切り抜く.
+	img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+}
+
+// 編集画面では <img> に直接クラスが付く(edit.js).
+img.l2dsis-sequence__poster {
+	object-fit: cover;
+}
+
+.l2dsis-sequence__canvas {
+	display: block;
+
+	// 固定しないときはコマを動かさないので、1 コマ目の <picture> だけを見せる.
+	// 視差効果を減らすときは、最後のコマを canvas に描くので隠さない.
+	.l2dsis-sequence:not(.is-pinned):not(.is-reduced-motion) & {
+		display: none;
+	}
+}
+
+// =============================================================================
+// 中身(InnerBlocks). コマの上に重ねる
+// =============================================================================
+
+.l2dsis-sequence__content {
+	// 中の最初のブロックの margin-top が箱の外へ抜け出し(マージンの相殺), 箱ごと押し下げられて
+	// 画面の下が隠れるのを防ぐ(【A】の実測: 見出しの 33px ぶん下にずれていた).
+	display: flow-root;
+	position: relative;
+	z-index: 1;
+	// 固定しないときも 1 画面ぶんの高さを持たせ、テーマが中身の中で文字を置く位置を、固定するときとそろえる.
+	min-height: 100vh;
+
+	.is-pinned & {
+		height: 100%;
+	}
+}
+
+// =============================================================================
+// 後ろの入れ物. SP の幅で view.js が中身の直下の .l2dsis-after-mobile のブロックを移す
+// 固定の区間の後ろに普通に流れ、view.js が付ける負の margin-top で、固定が終わったときに枠のすぐ下に来る.
+// そのとき固定する箱の下のほう(枠の下の空き)に重なるので、固定する箱より上に描く.
+// =============================================================================
+
+.l2dsis-sequence__after {
+	display: flow-root;
+	position: relative;
+	z-index: 2;
+}
+
+// =============================================================================
+// フェードイン(中身のブロックに追加 CSS クラス l2dsis-reveal を付けたとき)
+// 進み具合が revealAt を超えると view.js が .is-revealed を付け、子要素が順に現れる.
+// 隠すのは .is-pinned のときの、固定する箱の中だけ. JS が動かないときや、固定しないとき、
+// 後ろの入れ物に移ったブロック(SP の .l2dsis-after-mobile. UK の SP と同じくフェードインしない)は、ずっと見えている.
+// 時間は UK の 1 回の観測(現れ始めてから 350ms 後の不透明度が 1・0.97・0.74・0.11)からの見積もりで、未実測.
+// =============================================================================
+
+$l2dsis-reveal-duration: 0.3s;
+$l2dsis-reveal-stagger: 0.1s;
+
+.l2dsis-reveal > * {
+	transition: opacity $l2dsis-reveal-duration ease-out;
+}
+
+.is-pinned:not(.is-revealed) .l2dsis-sequence__sticky .l2dsis-reveal > * {
+	opacity: 0;
+}
+
+// 現れるときだけ、子要素を 1 つずつ遅らせる(消えるときはまとめて消す).
+.is-revealed .l2dsis-reveal > * {
+
+	@for $i from 2 through 12 {
+		&:nth-child(#{$i}) {
+			transition-delay: ($i - 1) * $l2dsis-reveal-stagger;
+		}
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.l2dsis-reveal > * {
+		transition: none;
+	}
 }

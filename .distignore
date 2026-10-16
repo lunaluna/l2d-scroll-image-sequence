@@ -19,3 +19,7 @@ package-lock.json
 composer.json
 composer.lock
 phpcs.xml.dist
+phpstan.neon.dist
+phpunit.xml.dist
+.phpunit.result.cache
+vitest.config.mjs

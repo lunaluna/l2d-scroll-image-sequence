@@ -1,0 +1,147 @@
+name: CI
+
+# main への push と PR で、検査とテストを行う.
+# 外部の Actions はコミットの SHA で固定する(行末の # は版. 更新は Dependabot の PR で).
+# 版は l2d-wp-github-update-lib のワークフローにそろえた(2026-10-16. setup-node と plugin-check-action はその日の最新).
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  php-syntax:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 対応する最も古い版(Requires PHP: 7.4)から、手元の版(8.4)まで.
+        php: [ '7.4', '8.1', '8.3', '8.4' ]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+
+      - name: Lint PHP files
+        run: |
+          find . -name '*.php' -not -path './vendor/*' -not -path './node_modules/*' -print0 \
+            | xargs -0 -n1 php -l
+
+  phpcs:
+    name: PHPCS (WordPress-Extra / WordPress-Docs)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
+
+      - name: Run PHPCS
+        run: vendor/bin/phpcs --standard=phpcs.xml.dist
+
+  phpstan:
+    name: PHPStan (level 5)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+  phpunit:
+    name: PHPUnit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 最も古い版と最も新しい版. composer.lock は config.platform.php = 7.4.33 で作っているので、どちらでも入る.
+        php: [ '7.4', '8.4' ]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: zip
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
+
+      - name: Run PHPUnit
+        run: vendor/bin/phpunit
+
+  js:
+    name: JS / CSS lint, unit tests and build check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # mise.toml の node と同じ版にする.
+          node-version: '24.22.0'
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Lint JS
+        run: npm run lint:js
+
+      - name: Lint CSS
+        run: npm run lint:css
+
+      - name: Run JS unit tests (Vitest)
+        run: npm run test:unit
+
+      # build/ はコミットしたものがそのまま配布の ZIP に入る(リリースではビルドしない).
+      # src/ を変えてビルドし忘れたままコミットしていないかを、ビルドし直して比べて確かめる.
+      - name: Check that build/ is up to date
+        run: |
+          npm run build
+          git diff --exit-code -- build
+
+  plugin-check:
+    name: Plugin Check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Run Plugin Check
+        uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
+        with:
+          build-dir: '.'
+          # 開発用ファイル(配布物には含まれない. .distignore を参照)は検査対象から除外する.
+          exclude-directories: '.github,vendor,node_modules,tests,bin,lib,src'
+          exclude-files: '.editorconfig,.gitignore,.distignore,composer.json,composer.lock,package.json,package-lock.json,phpcs.xml.dist,phpstan.neon.dist,phpunit.xml.dist,vitest.config.mjs,mise.toml,CLAUDE.md'
+          # Update URI: false を保ったまま GitHub Releases から自己更新する意図的な実装
+          # (forced-auto-update-controller と同じ). 既知の false positive として無視する.
+          ignore-codes: 'plugin_updater_detected'

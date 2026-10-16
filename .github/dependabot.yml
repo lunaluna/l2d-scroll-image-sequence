@@ -1,0 +1,8 @@
+# GitHub Actions の版を週に 1 回確かめ、新しい版が出たら PR を作る(l2d-wp-github-update-lib と同じ).
+# ワークフローの Actions はコミットの SHA で固定しているので、更新はこの PR で行う.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

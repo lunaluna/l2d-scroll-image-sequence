@@ -1,23 +1,31 @@
 {
-    "name": "lunaluna/l2d-scroll-image-sequence",
-    "description": "Plays an image sequence on a canvas in sync with page scroll while the section is pinned.",
-    "type": "wordpress-plugin",
-    "license": "GPL-2.0-or-later",
-    "require": {
-        "php": ">=7.4"
-    },
-    "require-dev": {
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-        "wp-coding-standards/wpcs": "^3.0",
-        "phpcompatibility/phpcompatibility-wp": "^2.1"
-    },
-    "config": {
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        }
-    },
-    "scripts": {
-        "lint": "phpcs",
-        "lint:fix": "phpcbf"
-    }
+	"name": "lunaluna/l2d-scroll-image-sequence",
+	"description": "Plays an image sequence on a canvas in sync with page scroll while the section is pinned.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=7.4"
+	},
+	"require-dev": {
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"wp-coding-standards/wpcs": "^3.0",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"phpunit/phpunit": "^9.6",
+		"phpstan/phpstan": "^2",
+		"szepeviktor/phpstan-wordpress": "^2"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		},
+		"platform": {
+			"php": "7.4.33"
+		}
+	},
+	"scripts": {
+		"lint": "phpcs",
+		"lint:fix": "phpcbf",
+		"analyse": "phpstan analyse --memory-limit=1G",
+		"test": "phpunit"
+	}
 }
