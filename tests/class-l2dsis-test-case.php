@@ -43,6 +43,16 @@ abstract class L2dsis_Test_Case extends TestCase {
 
 		// お知らせのトークン(リクエストごと)を空にする. テストどうしを別のリクエストとして扱うため.
 		$this->reset_notice_token();
+
+		// 「ページの中で最初のブロックか」と、1 コマ目の先読みの登録を空にする(テストどうしを別のページとして扱う).
+		foreach ( array(
+			'first_block_claimed' => false,
+			'preloads'            => array(),
+		) as $name => $value ) {
+			$property = new ReflectionProperty( 'L2dsis_Sequences', $name );
+			$property->setAccessible( true );
+			$property->setValue( null, $value );
+		}
 	}
 
 	/**

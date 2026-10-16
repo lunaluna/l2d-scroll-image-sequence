@@ -99,6 +99,20 @@ class L2dsis_Sequences {
 	private static $notice_token = '';
 
 	/**
+	 * このページで、コマのあるブロックをもう描画したか. claim_first_block() を参照.
+	 *
+	 * @var bool
+	 */
+	private static $first_block_claimed = false;
+
+	/**
+	 * このページの <head> で先読みする 1 コマ目. 各要素は wp_preload_resources の形. add_preload() を参照.
+	 *
+	 * @var array<int, array<string, string>>
+	 */
+	private static $preloads = array();
+
+	/**
 	 * フックを登録する.
 	 *
 	 * @return void
@@ -112,6 +126,7 @@ class L2dsis_Sequences {
 		add_action( 'admin_notices', array( __CLASS__, 'render_notice' ) );
 		add_filter( 'redirect_post_location', array( __CLASS__, 'add_notice_to_redirect' ), 10, 2 );
 		add_filter( 'removable_query_args', array( __CLASS__, 'add_removable_query_arg' ) );
+		add_filter( 'wp_preload_resources', array( __CLASS__, 'add_preload_resources' ) );
 
 		// admin_post_{action} はログインしているときだけ呼ばれる(wp-admin/admin-post.php). nopriv は登録しない.
 		add_action( 'admin_post_' . self::DOWNLOAD_ACTION, array( __CLASS__, 'download_frames' ) );
@@ -1159,6 +1174,58 @@ class L2dsis_Sequences {
 		}
 
 		return absint( $size[0] ) . ' / ' . absint( $size[1] );
+	}
+
+	/**
+	 * ページの中で最初に描画された、コマのあるブロックかを返す(最初の呼び出しだけ true).
+	 *
+	 * 1 コマ目の先読みと fetchpriority="high" は、最初のブロックだけに付ける. ページの下のほうのブロックまで先読みすると、
+	 * 上のブロックの 1 コマ目と回線を取り合うため(2026-10-16. Live Link の細い回線でコマの表示が遅かった).
+	 *
+	 * @return bool 最初なら true.
+	 */
+	public static function claim_first_block() {
+		if ( self::$first_block_claimed ) {
+			return false;
+		}
+		self::$first_block_claimed = true;
+		return true;
+	}
+
+	/**
+	 * 1 コマ目を、<head> で先読みするよう登録する.
+	 *
+	 * ブロックテーマでは、ブロックを描画してから <head> を出す(wp-includes/template-canvas.php)ので、render.php から
+	 * 登録すれば wp_preload_resources(wp_head の優先度 1)で出せる. クラシックテーマでは <head> のあとに描画するので
+	 * 出ない(そのときも、下敷きの <img> の fetchpriority="high" は効く).
+	 *
+	 * @param string $href  1 コマ目の URL.
+	 * @param string $media メディアクエリ(SP 用と PC 用の出し分け). 無ければ空.
+	 * @return void
+	 */
+	public static function add_preload( $href, $media = '' ) {
+		$resource = array(
+			'href'          => $href,
+			'as'            => 'image',
+			'fetchpriority' => 'high',
+		);
+		if ( '' !== $media ) {
+			$resource['media'] = $media;
+		}
+		self::$preloads[] = $resource;
+	}
+
+	/**
+	 * 登録した 1 コマ目の先読みを、<head> の先読みに足す.
+	 *
+	 * フィルター wp_preload_resources(wp-includes/general-template.php の wp_preload_resources(). media と
+	 * fetchpriority は 6.6 から使える).
+	 *
+	 * @param array $resources 先読みする資源.
+	 * @return array 先読みする資源.
+	 */
+	public static function add_preload_resources( $resources ) {
+		return array_merge( (array) $resources, self::$preloads );
 	}
 
 	/**

@@ -74,6 +74,20 @@ if ( '' !== $l2dsis_mobile_min_height ) {
 	$l2dsis_style .= '--l2dsis-mobile-min-height:' . $l2dsis_mobile_min_height . ';';
 }
 
+// 1 コマ目(下敷き)を早く出す(2026-10-16. Live Link の細い回線で、コマの表示が遅かった).
+// ページの中で最初のブロックだけ、1 コマ目を <head> で先読みし(ブロックテーマのとき), 下敷きの <img> を優先して読む.
+// 2 つ目以降のブロックは、下敷きを画面に近づいてから読む(loading="lazy"). 上のブロックと回線を取り合わないように.
+// SP 用があれば、SP 用と PC 用を media で出し分けて、両方を読まないようにする.
+$l2dsis_is_first_block = $l2dsis_has_frames && L2dsis_Sequences::claim_first_block();
+if ( $l2dsis_is_first_block ) {
+	if ( ! empty( $l2dsis_frames_mobile ) ) {
+		L2dsis_Sequences::add_preload( $l2dsis_frames_mobile[0], '(max-width: ' . $l2dsis_breakpoint . 'px)' );
+		L2dsis_Sequences::add_preload( $l2dsis_frames[0], '(min-width: ' . ( $l2dsis_breakpoint + 1 ) . 'px)' );
+	} else {
+		L2dsis_Sequences::add_preload( $l2dsis_frames[0] );
+	}
+}
+
 $l2dsis_wrapper_attributes = get_block_wrapper_attributes(
 	array(
 		'class'              => 'l2dsis-sequence ' . ( $l2dsis_has_frames ? 'has-frames' : 'is-empty' ),
@@ -99,7 +113,11 @@ $l2dsis_wrapper_attributes = get_block_wrapper_attributes(
 						<?php if ( ! empty( $l2dsis_frames_mobile ) ) : ?>
 							<source media="<?php echo esc_attr( '(max-width: ' . $l2dsis_breakpoint . 'px)' ); ?>" srcset="<?php echo esc_url( $l2dsis_frames_mobile[0] ); ?>">
 						<?php endif; ?>
-						<img src="<?php echo esc_url( $l2dsis_frames[0] ); ?>" alt="" decoding="async">
+						<?php if ( $l2dsis_is_first_block ) : ?>
+							<img src="<?php echo esc_url( $l2dsis_frames[0] ); ?>" alt="" decoding="async" fetchpriority="high">
+						<?php else : ?>
+							<img src="<?php echo esc_url( $l2dsis_frames[0] ); ?>" alt="" decoding="async" loading="lazy">
+						<?php endif; ?>
 					</picture>
 					<canvas class="l2dsis-sequence__canvas" aria-hidden="true"></canvas>
 				</div>

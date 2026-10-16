@@ -82,6 +82,73 @@ class RenderTest extends L2dsis_Test_Case {
 	}
 
 	/**
+	 * ページの中で最初のブロックだけ、1 コマ目を先読みし fetchpriority="high". 2 つ目は loading="lazy" で先読みしない.
+	 *
+	 * @return void
+	 */
+	public function test_only_first_block_preloads_first_frame() {
+		$this->sequence( 73, array( 'a-1.webp', 'a-2.webp' ) );
+		$this->sequence( 74, array( 'b-1.webp' ) );
+
+		$first  = $this->render( array( 'sequenceId' => 73 ) );
+		$second = $this->render( array( 'sequenceId' => 74 ) );
+
+		$this->assertStringContainsString( 'fetchpriority="high"', $first );
+		$this->assertStringNotContainsString( 'loading="lazy"', $first );
+		$this->assertStringContainsString( 'loading="lazy"', $second );
+		$this->assertStringNotContainsString( 'fetchpriority', $second );
+
+		$this->assertSame(
+			array(
+				array(
+					'href'          => 'https://example.test/wp-content/uploads/l2d-scroll-image-sequence/73/frames/a-1.webp',
+					'as'            => 'image',
+					'fetchpriority' => 'high',
+				),
+			),
+			L2dsis_Sequences::add_preload_resources( array() )
+		);
+	}
+
+	/**
+	 * SP 用があるときは、SP 用と PC 用の 1 コマ目を media で出し分けて先読みする(両方を読まない).
+	 *
+	 * @return void
+	 */
+	public function test_preload_is_split_by_media_with_mobile_sequence() {
+		$this->sequence( 75, array( 'pc-1.webp' ) );
+		$this->sequence( 76, array( 'sp-1.webp' ) );
+
+		$this->render(
+			array(
+				'sequenceId'       => 75,
+				'sequenceIdMobile' => 76,
+			)
+		);
+
+		$preloads = L2dsis_Sequences::add_preload_resources( array( array( 'href' => 'other.css' ) ) );
+		$this->assertSame( 'other.css', $preloads[0]['href'], 'ほかの先読みは残す' );
+		$this->assertSame( '(max-width: 1024px)', $preloads[1]['media'] );
+		$this->assertStringEndsWith( '/76/frames/sp-1.webp', $preloads[1]['href'] );
+		$this->assertSame( '(min-width: 1025px)', $preloads[2]['media'] );
+		$this->assertStringEndsWith( '/75/frames/pc-1.webp', $preloads[2]['href'] );
+	}
+
+	/**
+	 * シーケンスが無いブロックは「最初のブロック」に数えない(あとのブロックの先読みを妨げない).
+	 *
+	 * @return void
+	 */
+	public function test_empty_block_does_not_take_first_place() {
+		$this->sequence( 77, array( 'c-1.webp' ) );
+
+		$this->render( array( 'sequenceId' => 0 ) );
+		$html = $this->render( array( 'sequenceId' => 77 ) );
+
+		$this->assertStringContainsString( 'fetchpriority="high"', $html );
+	}
+
+	/**
 	 * シーケンスが無いときは、コマの属性は空で、.is-empty になる.
 	 *
 	 * @return void
