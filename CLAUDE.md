@@ -24,6 +24,7 @@
 ## 開発の決まり
 
 - Node は mise(`mise.toml`). 古いセッションで `node -v` が v14 になるときは `export PATH="$(mise where node)/bin:$PATH"` を前に付ける
+- セッションによっては PATH に `/opt/homebrew/bin` が無く、`php`・`composer`・`mise` が見つからない(2026-10-16). そのときは `export PATH="/opt/homebrew/bin:$PATH"` を前に付ける
 - `npm install`・`composer install` は、サンドボックスの中では npm のレジストリなどへの接続が拒否されるので、サンドボックスの外で実行する
 - **`build/` はコミットする**. 共有のリリース用ワークフロー(`l2d-wp-github-update-lib` の `plugin-release.yml`)は Node のビルド工程を持たず、作業ツリーを `.distignore` で絞って ZIP にするため. `src/` を変えたら `npm run build` してから `build/` も一緒にコミットする
 - 関数・定数の接頭辞は `l2dsis` / `L2DSIS_`. クラスは `L2dsis_*`. フィルターは `l2dsis_...`(WPCS の `_` 区切り)
