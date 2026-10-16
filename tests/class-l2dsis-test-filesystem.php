@@ -76,6 +76,18 @@ class L2dsis_Test_Filesystem {
 	}
 
 	/**
+	 * ファイルに書く.
+	 *
+	 * @param string $file     パス.
+	 * @param string $contents 中身.
+	 * @param int    $mode     権限(使わない).
+	 * @return bool 書けたら true.
+	 */
+	public function put_contents( $file, $contents, $mode = false ) {
+		return false !== file_put_contents( $file, $contents );
+	}
+
+	/**
 	 * 権限を変える. テストでは何もしない.
 	 *
 	 * @param string $path パス.

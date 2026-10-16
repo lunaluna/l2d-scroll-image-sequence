@@ -695,8 +695,21 @@ class L2dsis_Sequences {
 		 */
 		$max_frame_pixels = (int) apply_filters( 'l2dsis_max_frame_pixels', 16000000 );
 
-		$frames  = 0;
-		$skipped = 0;
+		/**
+		 * 1 つの ZIP から取り込むコマの、画素数(幅 × 高さ)の合計の上限.
+		 *
+		 * 1 コマの上限とコマ数の上限だけでは、ブラウザでデコードしたときの合計が大きくなりうるため
+		 * (2026-10-16 の最終レビューの指摘 2. 16 メガピクセル × 300 枚 = RGBA で約 19GB).
+		 * 既定の 500,000,000(5 億画素)は、実データの最大(A290 の #19 の PC 用 140 コマ × 2048 × 1152 ≒ 3.3 億画素)の
+		 * 約 1.5 倍. ブラウザで同時に持つコマは view.js でさらに絞る.
+		 *
+		 * @param int $pixels 上限.
+		 */
+		$max_total_pixels = (int) apply_filters( 'l2dsis_max_total_pixels', 500000000 );
+
+		$frames       = 0;
+		$skipped      = 0;
+		$total_pixels = 0;
 
 		foreach ( $entries as $file_name => $entry ) {
 			// 書かれた大きさ + 1 バイトまでしか読まない. 実際の中身のほうが大きければ、細工された ZIP として止める.
@@ -731,6 +744,19 @@ class L2dsis_Sequences {
 						(int) $size[0],
 						(int) $size[1],
 						number_format_i18n( $max_frame_pixels )
+					)
+				);
+			}
+
+			// 合計の画素数の上限. 超えたら取り込み全体を止める.
+			$total_pixels += (int) $size[0] * (int) $size[1];
+			if ( $total_pixels > $max_total_pixels ) {
+				return new WP_Error(
+					'l2dsis_total_too_many_pixels',
+					sprintf(
+						/* translators: %s: maximum number of pixels. */
+						__( 'The images in the ZIP file have more pixels in total than the limit (%s pixels). The current frames were kept.', 'l2d-scroll-image-sequence' ),
+						number_format_i18n( $max_total_pixels )
 					)
 				);
 			}

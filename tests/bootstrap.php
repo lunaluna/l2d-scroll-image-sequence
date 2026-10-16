@@ -230,6 +230,64 @@ function move_dir( $from, $to ) {
 }
 
 /**
+ * Wp_check_filetype_and_ext() のスタブ. 拡張子だけで判定する(中身の MIME の検査は wp_getimagesize() のスタブに任せる).
+ *
+ * @param string $file     パス.
+ * @param string $filename ファイル名.
+ * @param array  $mimes    受け付ける拡張子と MIME.
+ * @return array{ext: string|false, type: string|false, proper_filename: false} 判定.
+ */
+function wp_check_filetype_and_ext( $file, $filename, $mimes ) {
+	$extension = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+	foreach ( $mimes as $pattern => $mime ) {
+		if ( preg_match( '!^(' . $pattern . ')$!i', $extension ) ) {
+			return array(
+				'ext'             => $extension,
+				'type'            => $mime,
+				'proper_filename' => false,
+			);
+		}
+	}
+	return array(
+		'ext'             => false,
+		'type'            => false,
+		'proper_filename' => false,
+	);
+}
+
+/**
+ * Wp_getimagesize() のスタブ. PHP の getimagesize() そのもの.
+ *
+ * @param string $filename パス.
+ * @return array|false 大きさ.
+ */
+function wp_getimagesize( $filename ) {
+	return @getimagesize( $filename ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+}
+
+/**
+ * Wp_delete_file() のスタブ.
+ *
+ * @param string $file パス.
+ * @return void
+ */
+function wp_delete_file( $file ) {
+	if ( is_file( $file ) ) {
+		unlink( $file );
+	}
+}
+
+/**
+ * Number_format_i18n() のスタブ.
+ *
+ * @param float $number 数.
+ * @return string 3 桁ごとに , を入れた数.
+ */
+function number_format_i18n( $number ) {
+	return number_format( $number );
+}
+
+/**
  * Wp_mkdir_p() のスタブ. フォルダを親ごと作る.
  *
  * @param string $target フォルダ.
