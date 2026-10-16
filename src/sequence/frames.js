@@ -228,3 +228,35 @@ export function orderLoaders( priorities, level, rotation ) {
 	}
 	return order;
 }
+
+/**
+ * 読み込みのキューが、今回どの段のブロックに枠を回すかを返す(view.js の pumpLoads()).
+ *
+ * 「画面の中 → 近くて向きの先 → 近くて後ろ」の順に段を足していく. ただし、画面の中か向きの先の段に、
+ * 下敷き(1 コマ目)を待っているブロックがあれば、そこで止めて、それより後ろの段には回さない.
+ * 先のブロックは下敷きが届くまでコマを読まない(nextLoad() が null)ので、止めないと、空いた枠を後ろのブロックが取り、
+ * 先のブロックの下敷きと回線を取り合う(2026-10-16【A】の指摘. #19 と #21 のあいだを下へ動くと、#21 より先に
+ * #19 のコマ 6 枚が読まれ、#21 のコマは 5.7 秒から). 同じ段のほかのブロックには、今までどおり回す.
+ *
+ * @param {number[]}  priorities 各ブロックの近さ(loaderPriority() の段).
+ * @param {boolean[]} waiting    各ブロックが下敷きを待っているか.
+ * @return {number[]} 枠を回す段(順に).
+ */
+export function levelsToServe( priorities, waiting ) {
+	const levels = [];
+	for ( const level of [
+		LOADER_VISIBLE,
+		LOADER_NEAR_AHEAD,
+		LOADER_NEAR_BEHIND,
+	] ) {
+		levels.push( level );
+		// 後ろの段は最後なので、待っているブロックがあってもなくても、ここで終わる(止めても結果は同じ).
+		const blocked = priorities.some(
+			( priority, index ) => priority === level && waiting[ index ]
+		);
+		if ( blocked ) {
+			break;
+		}
+	}
+	return levels;
+}

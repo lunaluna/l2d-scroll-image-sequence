@@ -22,6 +22,7 @@ import {
 	clamp,
 	frameIndexForProgress,
 	keepRange,
+	levelsToServe,
 	loaderPriority,
 	maxFramesForBudget,
 	nearestIndex,
@@ -308,5 +309,46 @@ describe( 'scroll direction within a block', () => {
 		expect(
 			nextIndexToLoad( requestedSet( [ 28 ] ), 28, range, 8, -1 )
 		).toBe( 24 );
+	} );
+} );
+
+describe( 'levelsToServe', () => {
+	const all = [ LOADER_VISIBLE, LOADER_NEAR_AHEAD, LOADER_NEAR_BEHIND ];
+
+	it( 'serves all levels when nobody is waiting for the first frame', () => {
+		expect(
+			levelsToServe(
+				[ LOADER_NEAR_BEHIND, LOADER_NEAR_AHEAD ],
+				[ false, false ]
+			)
+		).toEqual( all );
+	} );
+
+	it( 'stops after the ahead level while an ahead block waits for its first frame', () => {
+		// #19(後ろ)と #21(向きの先・下敷きを待っている): #19 には回さない.
+		expect(
+			levelsToServe(
+				[ LOADER_NEAR_BEHIND, LOADER_NEAR_AHEAD ],
+				[ false, true ]
+			)
+		).toEqual( [ LOADER_VISIBLE, LOADER_NEAR_AHEAD ] );
+	} );
+
+	it( 'stops after the visible level while a visible block waits', () => {
+		expect(
+			levelsToServe(
+				[ LOADER_VISIBLE, LOADER_NEAR_AHEAD ],
+				[ true, false ]
+			)
+		).toEqual( [ LOADER_VISIBLE ] );
+	} );
+
+	it( 'does not stop for a waiting block behind or far away', () => {
+		expect(
+			levelsToServe(
+				[ LOADER_NEAR_BEHIND, LOADER_FAR, LOADER_NEAR_AHEAD ],
+				[ true, true, false ]
+			)
+		).toEqual( all );
 	} );
 } );

@@ -22,12 +22,10 @@
  * Internal dependencies
  */
 import {
-	LOADER_NEAR_AHEAD,
-	LOADER_NEAR_BEHIND,
-	LOADER_VISIBLE,
 	clamp,
 	frameIndexForProgress,
 	keepRange,
+	levelsToServe,
 	loaderPriority,
 	maxFramesForBudget,
 	nearestIndex,
@@ -80,10 +78,19 @@ const PAGE_DECODED_PIXEL_BUDGET = 200000000;
 const LOAD_STRIDE = 8;
 
 /**
- * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() と、
- * 画面との近さの段を返す関数 priority()(frames.js の loaderPriority())を持つ.
+ * 近くに入ったブロックの下敷き(1 コマ目)を待つ、最も長い時間(ミリ秒). 過ぎたら、届いていなくても届いた扱いにする.
  *
- * @type {Array<{nextLoad: () => ({url: string, done: (image: HTMLImageElement|null) => void}|null), priority: () => number}>}
+ * 下敷きを待っているあいだは、そのブロックのコマも、後ろの段のブロックのコマも読まない(levelsToServe())ので、
+ * 回線が止まったままでも読み込みが止まり続けないようにする. 5000 は、【A】の実測(2026-10-16. HTTP キャッシュなし)で
+ * 1 コマ目が届くまでの最も遅い値(SP・5Mbps・遅延 300ms で 1,258ms)の約 4 倍.
+ */
+const POSTER_WAIT_LIMIT_MS = 5000;
+
+/**
+ * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() と、
+ * 画面との近さの段を返す関数 priority()(frames.js の loaderPriority())と、下敷き(1 コマ目)を待っているかを返す関数 waiting() を持つ.
+ *
+ * @type {Array<{nextLoad: () => ({url: string, done: (image: HTMLImageElement|null) => void}|null), priority: () => number, waiting: () => boolean}>}
  */
 const loaders = [];
 
@@ -158,12 +165,10 @@ function startLoad( task ) {
  */
 function pumpLoads() {
 	const priorities = loaders.map( ( loader ) => loader.priority() );
+	const waiting = loaders.map( ( loader ) => loader.waiting() );
 
-	for ( const level of [
-		LOADER_VISIBLE,
-		LOADER_NEAR_AHEAD,
-		LOADER_NEAR_BEHIND,
-	] ) {
+	// 画面の中か向きの先のブロックが下敷きを待っているあいだは、それより後ろの段に回さない(levelsToServe()).
+	for ( const level of levelsToServe( priorities, waiting ) ) {
 		const order = orderLoaders( priorities, level, pumpRotation );
 		let started = true;
 		while ( activeLoads < MAX_CONCURRENT_LOADS && started ) {
@@ -626,6 +631,34 @@ function setupSequence( root, budgetPixels ) {
 		posterImage.addEventListener( 'error', onPosterDone, { once: true } );
 	}
 
+	// 安全の時間を数え始めたか(1 回だけ).
+	let posterTimerStarted = false;
+
+	/**
+	 * 近くに入ったブロックの下敷きを急がせる. 下敷きを待つあいだはほかの読み込みを止める(levelsToServe())ので、
+	 * 下敷きが届かないまま止まり続けないようにする.
+	 * - 2 つ目以降のブロックの下敷きは loading="lazy" で、ブラウザが「もうすぐ画面に入る」と判断するまで読み込みを始めない.
+	 *   その範囲は先読みの範囲より狭いことがあるので、eager に変えて、すぐ読み込みを始めさせる
+	 * - 失敗したら onPosterDone() で届いた扱い. 回線が止まったままなら、POSTER_WAIT_LIMIT_MS で届いた扱いにする
+	 */
+	const hurryPoster = () => {
+		if ( posterReady || ! posterImage ) {
+			return;
+		}
+		if ( 'lazy' === posterImage.loading ) {
+			posterImage.loading = 'eager';
+		}
+		if ( ! posterTimerStarted ) {
+			posterTimerStarted = true;
+			window.setTimeout( () => {
+				if ( ! posterReady ) {
+					posterReady = true;
+					pumpLoads();
+				}
+			}, POSTER_WAIT_LIMIT_MS );
+		}
+	};
+
 	// 画面との近さ. 2 つの IntersectionObserver で見張り続ける(読み込みのキューの順番に使う. pumpLoads() を参照).
 	// IntersectionObserver が無いブラウザでは、画面の中として扱う(今までどおり読む).
 	const hasObserver = 'IntersectionObserver' in window;
@@ -643,6 +676,7 @@ function setupSequence( root, budgetPixels ) {
 				! isVisible && isNear && root.getBoundingClientRect().top >= 0,
 				scrollDirection
 			),
+		waiting: () => ! posterReady,
 	} );
 
 	selectFrames();
@@ -667,6 +701,7 @@ function setupSequence( root, budgetPixels ) {
 					isNear = intersecting;
 					if ( intersecting ) {
 						nearViewport = true;
+						hurryPoster();
 						maybeStartLoading();
 					}
 				} ),
@@ -681,6 +716,7 @@ function setupSequence( root, budgetPixels ) {
 		).observe( root );
 	} else {
 		nearViewport = true;
+		hurryPoster();
 		maybeStartLoading();
 	}
 
