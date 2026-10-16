@@ -936,11 +936,16 @@ class L2dsis_Sequences {
 
 		$frames_dir = self::get_dir( $post_id ) . '/' . self::FRAMES_DIR;
 		foreach ( $files as $file ) {
-			$zip->addFile( $frames_dir . '/' . $file, $file );
+			// 失敗したら(コマのファイルが途中で消えた、など)不完全な ZIP を渡さずに止める(2026-10-16 の最終レビュー).
+			// 作りかけの ZIP は、上の register_shutdown_function() で消える.
 			// webp / jpg / png はすでに圧縮されているので、圧縮せずに入れる(時間がかかるだけで小さくならない).
-			$zip->setCompressionName( $file, ZipArchive::CM_STORE );
+			if ( ! $zip->addFile( $frames_dir . '/' . $file, $file ) || ! $zip->setCompressionName( $file, ZipArchive::CM_STORE ) ) {
+				$zip->close();
+				wp_die( esc_html__( 'Could not create the ZIP file.', 'l2d-scroll-image-sequence' ) );
+			}
 		}
 
+		// addFile() はファイルを close() のときに読むので、その間に消えたときは close() が失敗する.
 		if ( ! $zip->close() ) {
 			wp_die( esc_html__( 'Could not create the ZIP file.', 'l2d-scroll-image-sequence' ) );
 		}
