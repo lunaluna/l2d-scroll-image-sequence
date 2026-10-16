@@ -167,3 +167,45 @@ describe( 'nextIndexToLoad', () => {
 		).toBe( 98 );
 	} );
 } );
+
+describe( 'nextIndexToLoad with a stride (coarse to fine)', () => {
+	const requestedSet = ( indexes ) => ( index ) => indexes.includes( index );
+	const range = { start: 0, end: 89 };
+
+	it( 'loads the wanted frame first', () => {
+		expect( nextIndexToLoad( requestedSet( [] ), 30, range, 8 ) ).toBe(
+			30
+		);
+	} );
+
+	it( 'then loads the nearest frame on the stride grid', () => {
+		// 30 の次は、8 の倍数のうち近い 32(24 より近い).
+		expect( nextIndexToLoad( requestedSet( [ 30 ] ), 30, range, 8 ) ).toBe(
+			32
+		);
+		expect(
+			nextIndexToLoad( requestedSet( [ 30, 32 ] ), 30, range, 8 )
+		).toBe( 24 );
+	} );
+
+	it( 'treats the last frame in the range as part of the grid', () => {
+		// 8 の倍数(0〜88)がそろったら、次は範囲の最後のコマ 89(1 などの残りより先).
+		const grid = [ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88 ];
+		expect( nextIndexToLoad( requestedSet( grid ), 0, range, 8 ) ).toBe(
+			89
+		);
+	} );
+
+	it( 'fills the remaining frames after the grid is loaded', () => {
+		const grid = [ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 89 ];
+		expect( nextIndexToLoad( requestedSet( grid ), 0, range, 8 ) ).toBe(
+			1
+		);
+	} );
+
+	it( 'behaves like the nearest order without a stride', () => {
+		expect( nextIndexToLoad( requestedSet( [ 30 ] ), 30, range ) ).toBe(
+			29
+		);
+	} );
+} );

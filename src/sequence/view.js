@@ -67,6 +67,14 @@ const MAX_CONCURRENT_LOADS = 6;
 const PAGE_DECODED_PIXEL_BUDGET = 200000000;
 
 /**
+ * コマを粗い順に読むときの、間引きの間隔. まず今のコマ、次にこの間隔ごとのコマ、最後に残りを読む(frames.js の nextIndexToLoad()).
+ *
+ * 細い回線(Local の Live Link など)で、全部のコマがそろう前からスクロールに合わせて絵が動くようにする(2026-10-16).
+ * 8 は未実測. 90 コマなら最初の約 12 枚で全体の動きが出る. 【A】で Live Link の回線の見え方を確かめて決め直す.
+ */
+const LOAD_STRIDE = 8;
+
+/**
  * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() を持つ.
  *
  * @type {Array<{nextLoad: () => ({url: string, done: (image: HTMLImageElement|null) => void}|null)}>}
@@ -177,6 +185,9 @@ function setupSequence( root, budgetPixels ) {
 	// 箱が先読みの範囲に入ったか(IntersectionObserver). 入ったあとで固定するようになったときにも読み始める.
 	let nearViewport = false;
 	let loadingStarted = false;
+	// 下敷きの 1 コマ目(<picture> の <img>)が届いたか. 届くまでほかのコマを読まない(1 コマ目に回線を譲る. 2026-10-16).
+	// 失敗したときも、待ち続けないよう届いた扱いにする. JS の 1 コマ目は同じ URL なので、ブラウザのキャッシュから届く.
+	let posterReady = true;
 	// 最後に描いたコマの番号(読み込みが進んだときに、より近いコマで描き直すかの判定に使う).
 	let drawnIndex = -1;
 	let wantedIndex = 0;
@@ -225,14 +236,16 @@ function setupSequence( root, budgetPixels ) {
 	 * @return {{url: string, done: (image: HTMLImageElement|null) => void}|null} 読むコマの URL と、読み終えたときに呼ぶ関数.
 	 */
 	const nextLoad = () => {
-		if ( ! loadingStarted || ! frames.length ) {
+		if ( ! loadingStarted || ! posterReady || ! frames.length ) {
 			return null;
 		}
 
+		// 視差効果を減らすときは範囲が最後のコマ 1 枚だけなので、間引きは関係ない.
 		const index = nextIndexToLoad(
 			( i ) => requested[ i ],
 			wantedIndex,
-			currentRange()
+			currentRange(),
+			LOAD_STRIDE
 		);
 		if ( -1 === index ) {
 			return null;
@@ -533,6 +546,19 @@ function setupSequence( root, budgetPixels ) {
 		maybeStartLoading();
 		requestDraw();
 	};
+
+	// 下敷きの 1 コマ目がまだ届いていなければ、届くまで(または失敗するまで)ほかのコマを読まない.
+	// 届いたら、読み込みのキューを動かす(ほかの条件がそろっていれば読み始める).
+	const posterImage = media.querySelector( '.l2dsis-sequence__poster img' );
+	if ( posterImage && ! posterImage.complete ) {
+		posterReady = false;
+		const onPosterDone = () => {
+			posterReady = true;
+			pumpLoads();
+		};
+		posterImage.addEventListener( 'load', onPosterDone, { once: true } );
+		posterImage.addEventListener( 'error', onPosterDone, { once: true } );
+	}
 
 	// ページ全体の読み込みのキューに登録する(読み始めるのは startLoading() のあと).
 	loaders.push( { nextLoad } );

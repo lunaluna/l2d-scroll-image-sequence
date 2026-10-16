@@ -122,21 +122,41 @@ export function keepRange( wanted, count, maxKept ) {
 }
 
 /**
- * 持つ範囲の中で、まだ読み込みを出していない、今欲しいコマに一番近いコマを返す.
+ * 持つ範囲の中で、次に読むコマを返す. まだ読み込みを出していないコマから選ぶ.
+ *
+ * 読む順番(2026-10-16. 細い回線でも早くスクロールに合わせて絵が動くように、粗い順に読む):
+ * 1. 今欲しいコマ
+ * 2. 間引いたコマ(番号が stride の倍数のコマと、範囲の最後のコマ)のうち、今欲しいコマに近いもの
+ * 3. 残りのコマのうち、今欲しいコマに近いもの
+ * 間引いたコマがそろえば、そのあいだのコマは近い間引いたコマで代わりに描くので、少ない通信量で全体の動きが出る.
  *
  * @param {(index: number) => boolean}   isRequested 読み込みを出したか.
  * @param {number}                       wanted      今欲しいコマの番号.
  * @param {{start: number, end: number}} range       持つ範囲.
+ * @param {number}                       stride      間引きの間隔. 1 なら間引かない(近い順だけ).
  * @return {number} 次に読むコマの番号. 無ければ -1.
  */
-export function nextIndexToLoad( isRequested, wanted, range ) {
+export function nextIndexToLoad( isRequested, wanted, range, stride = 1 ) {
 	const center = clamp( wanted, range.start, range.end );
-	return nearestIndex(
-		( index ) =>
-			index >= range.start &&
-			index <= range.end &&
-			! isRequested( index ),
-		center,
-		range.end + 1
-	);
+	const isOpen = ( index ) =>
+		index >= range.start && index <= range.end && ! isRequested( index );
+
+	if ( isOpen( center ) ) {
+		return center;
+	}
+
+	if ( stride > 1 ) {
+		const coarse = nearestIndex(
+			( index ) =>
+				isOpen( index ) &&
+				( 0 === index % stride || index === range.end ),
+			center,
+			range.end + 1
+		);
+		if ( -1 !== coarse ) {
+			return coarse;
+		}
+	}
+
+	return nearestIndex( isOpen, center, range.end + 1 );
 }
