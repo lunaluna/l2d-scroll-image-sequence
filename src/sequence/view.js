@@ -3,6 +3,7 @@
  *
  * render.php が出した .l2dsis-sequence ごとに、スクロールの進み具合(0〜1)に合わせてコマを canvas に描く.
  * 素の JS で書く(ライブラリは使わない). 状態ごとの表示はプラン ~/.claude/plans/alpine-2026-a290-image-sequence.md の 3-3.
+ * コマの選び方・読み方・持ち方の判断は frames.js(Jest でテストする).
  *
  * 状態(mode)は 3 つ. 画面の大きさが変わるたびに決め直す:
  * - reduced(視差効果を減らす. prefers-reduced-motion: reduce): 固定せず、最後のコマ 1 枚だけを読んで描く.
@@ -18,7 +19,21 @@
  */
 
 /**
- * 先読みを始める距離. 箱の上端が「画面の下端 + 画面の高さ × 2」まで近づいたら、全コマを読み始める.
+ * Internal dependencies
+ */
+import {
+	clamp,
+	frameIndexForProgress,
+	keepRange,
+	maxFramesForBudget,
+	nearestIndex,
+	nextIndexToLoad,
+	parseFrames,
+	pickFrames,
+} from './frames';
+
+/**
+ * 先読みを始める距離. 箱の上端が「画面の下端 + 画面の高さ × 2」まで近づいたら、コマを読み始める.
  * 先読みを始めてから固定が始まるまでのスクロールは、画面 3 つ分(1440 × 900 で 2700px)になる.
  *
  * 根拠は 2026-10-15 の【A】の実測(キャッシュなし・最初のコマの要求からの時間. PC 90 コマ 3.4MB):
@@ -31,43 +46,25 @@
 const PRELOAD_ROOT_MARGIN = '200% 0px';
 
 /**
- * 値を min〜max に収める.
- *
- * @param {number} value 値.
- * @param {number} min   下限.
- * @param {number} max   上限.
- * @return {number} 収めた値.
- */
-const clamp = ( value, min, max ) => Math.min( max, Math.max( min, value ) );
-
-/**
- * data- 属性の JSON(コマの URL の配列)を読む. 壊れていたら空.
- *
- * @param {string|undefined} json data- 属性の値.
- * @return {string[]} URL の配列.
- */
-function parseFrames( json ) {
-	if ( ! json ) {
-		return [];
-	}
-	try {
-		const frames = JSON.parse( json );
-		return Array.isArray( frames ) ? frames : [];
-	} catch {
-		return [];
-	}
-}
-
-/**
  * ページ全体で、同時に読み込むコマの数の上限.
  *
  * 全コマに一斉に読み込みを出すと、サーバーや CDN へリクエストが集中し、どのコマから届くかも決められない
  * (2026-10-15 のレビューの指摘 2). ページの中のすべてのブロックで、1 つのキューを共有する.
  * 6 は、HTTP/1.1 のブラウザが 1 つのホストに同時に張る接続の数の上限(それ以上出しても待たされるだけ).
- * HTTP/2 では上限が無いが、数を絞ることで、今の位置に近いコマから順に届くようにできる.
- * この値で全コマを読み終えるまでの時間がどう変わるかは未実測(【A】で、前回と同じ 20Mbps・5Mbps の条件で測る).
+ * 2026-10-16 の【A】の実測: 6 件に絞っても、全部を読み終える時間は前と同じだった.
  */
 const MAX_CONCURRENT_LOADS = 6;
+
+/**
+ * ページ全体で、デコードした画像として一度に持つコマの、画素数(幅 × 高さ)の合計の予算.
+ *
+ * 読んだコマを全部持つと、デコード後のメモリが大きくなる(2026-10-16 の最終レビューの指摘 2. A290 の #19 の PC 用
+ * 140 コマ × 2048 × 1152 ≒ 3.3 億画素で、RGBA なら約 1.3GB). 予算はページの中のブロックの数で分け、
+ * 各ブロックは今のコマの前後だけを持ち、範囲から外れたコマは手放す(戻ると、ブラウザのキャッシュから読み直す).
+ * 2 億画素は RGBA で約 800MB. 未実測(【A】で、ブラウザのメモリの使い方と、戻る方向に速くスクロールしたときの
+ * 見え方を確かめる). 例: A290 のページはブロックが 2 つなので 1 つあたり 1 億画素 = 2048 × 1152 なら約 42 コマ.
+ */
+const PAGE_DECODED_PIXEL_BUDGET = 200000000;
 
 /**
  * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() を持つ.
@@ -84,7 +81,7 @@ let activeLoads = 0;
 /**
  * 読み込みの空きがあれば、登録したブロックを順番に回って 1 件ずつ読み始める.
  * 1 つのブロックが空きを独り占めしないよう、1 周につき 1 ブロック 1 件にする.
- * 読み込みが 1 件終わるたび・ブロックが読み始めてよくなったたびに呼ぶ.
+ * 読み込みが 1 件終わるたび・ブロックが読み始めてよくなったたび・今のコマが変わったたびに呼ぶ.
  */
 function pumpLoads() {
 	let started = true;
@@ -118,9 +115,10 @@ function pumpLoads() {
 /**
  * 1 つのブロックの動きを組み立てる.
  *
- * @param {HTMLElement} root .l2dsis-sequence の要素.
+ * @param {HTMLElement} root         .l2dsis-sequence の要素.
+ * @param {number}      budgetPixels このブロックが一度に持つコマの画素数の予算.
  */
-function setupSequence( root ) {
+function setupSequence( root, budgetPixels ) {
 	const track = root.querySelector( '.l2dsis-sequence__track' );
 	const sticky = root.querySelector( '.l2dsis-sequence__sticky' );
 	const media = root.querySelector( '.l2dsis-sequence__media' );
@@ -167,12 +165,15 @@ function setupSequence( root ) {
 
 	// 今の状態('reduced' / 'pinned' / 'static'). 最初は決まっていない.
 	let mode = '';
-	// 今使っているコマの URL と、読み込んだ画像(読み込み中・失敗・読まないコマは null).
-	// 読み込んだ画像は全部保持する(戻る方向にスクロールしてもすぐ描けるように. 2026-10-15 ユーザー決定).
+	// 今使っているコマの URL と、読み込んだ画像(読み込み中・失敗・持たないコマは null).
 	let frames = [];
 	let images = [];
 	// 読み込みを出したか(読み込み中・読み込み済み・失敗は true). 同じコマを 2 回読まないため.
 	let requested = [];
+	// 読み込み中か. 範囲の外になったコマを手放すとき、読み込み中のものは done() に任せる.
+	let inFlight = [];
+	// 1 コマの画素数(幅 × 高さ). 最初に届いたコマで決める(同じシーケンスのコマは同じ大きさ). 分かるまでは 0.
+	let pixelsPerFrame = 0;
 	// 箱が先読みの範囲に入ったか(IntersectionObserver). 入ったあとで固定するようになったときにも読み始める.
 	let nearViewport = false;
 	let loadingStarted = false;
@@ -182,60 +183,84 @@ function setupSequence( root ) {
 	let frameRequest = 0;
 
 	/**
-	 * 画面の幅に合うコマの一覧を選ぶ. SP 用が無ければ PC 用を使う.
+	 * 今持つコマの範囲. 視差効果を減らすときは最後のコマだけ.
 	 *
-	 * @return {string[]} URL の配列.
+	 * @return {{start: number, end: number}} 範囲(両端を含む).
 	 */
-	const pickFrames = () =>
-		mobileQuery.matches && mobileFrames.length
-			? mobileFrames
-			: desktopFrames;
+	const currentRange = () => {
+		if ( reducedMotion ) {
+			const last = frames.length - 1;
+			return { start: last, end: last };
+		}
+		return keepRange(
+			wantedIndex,
+			frames.length,
+			maxFramesForBudget( budgetPixels, pixelsPerFrame, frames.length )
+		);
+	};
+
+	/**
+	 * 範囲の外になったコマを手放す. 読み込み中のものは、届いたときに done() で捨てる.
+	 * 手放したコマは、また範囲に入ったら読み直せるよう「読み込みを出していない」に戻す.
+	 */
+	const releaseOutsideRange = () => {
+		const range = currentRange();
+		for ( let index = 0; index < frames.length; index++ ) {
+			if (
+				( index < range.start || index > range.end ) &&
+				! inFlight[ index ]
+			) {
+				images[ index ] = null;
+				requested[ index ] = false;
+			}
+		}
+	};
 
 	/**
 	 * 次に読むコマを返す(ページ全体のキュー pumpLoads() から呼ばれる). 読むものが無ければ null.
 	 *
-	 * まだ読み込みを出していないコマのうち、今欲しいコマ(wantedIndex)に一番近いものを選ぶ.
+	 * 持つ範囲の中で、まだ読み込みを出していないコマのうち、今欲しいコマ(wantedIndex)に一番近いものを選ぶ.
 	 * スクロールして欲しいコマが変われば、次に読むコマもそれに合わせて変わる.
-	 * 視差効果を減らす設定のときは、最後のコマしか描かないので、最後のコマ 1 枚だけを読む
-	 * (2026-10-15 ユーザー決定. それまでは全コマを読み、届くたびに描き直していた).
 	 *
 	 * @return {{url: string, done: (image: HTMLImageElement|null) => void}|null} 読むコマの URL と、読み終えたときに呼ぶ関数.
 	 */
 	const nextLoad = () => {
-		if ( ! loadingStarted ) {
+		if ( ! loadingStarted || ! frames.length ) {
 			return null;
 		}
 
-		let index = -1;
-		if ( reducedMotion ) {
-			const last = frames.length - 1;
-			index = requested[ last ] ? -1 : last;
-		} else {
-			for ( let distance = 0; distance < frames.length; distance++ ) {
-				const earlier = wantedIndex - distance;
-				const later = wantedIndex + distance;
-				if ( earlier >= 0 && ! requested[ earlier ] ) {
-					index = earlier;
-					break;
-				}
-				if ( later < frames.length && ! requested[ later ] ) {
-					index = later;
-					break;
-				}
-			}
-		}
+		const index = nextIndexToLoad(
+			( i ) => requested[ i ],
+			wantedIndex,
+			currentRange()
+		);
 		if ( -1 === index ) {
 			return null;
 		}
 
 		requested[ index ] = true;
+		inFlight[ index ] = true;
 		const url = frames[ index ];
 		return {
 			url,
 			done: ( image ) => {
-				// 失敗したコマは null のまま. 近いコマで代わりに描く(3-3 の「一部が失敗」).
 				// 一覧を入れ替えたあとに、古い一覧の画像が届いたら捨てる.
-				if ( ! image || frames[ index ] !== url ) {
+				if ( frames[ index ] !== url ) {
+					return;
+				}
+				inFlight[ index ] = false;
+				// 失敗したコマは持たない(読み込みを出した印は残し、同じ範囲にいるあいだは読み直さない).
+				// 近いコマで代わりに描く(3-3 の「一部が失敗」).
+				if ( ! image ) {
+					return;
+				}
+				if ( ! pixelsPerFrame ) {
+					pixelsPerFrame = image.naturalWidth * image.naturalHeight;
+				}
+				// 届くまでのあいだに範囲の外になったら、持たずに捨てる.
+				const range = currentRange();
+				if ( index < range.start || index > range.end ) {
+					requested[ index ] = false;
 					return;
 				}
 				images[ index ] = image;
@@ -266,24 +291,6 @@ function setupSequence( root ) {
 		if ( nearViewport && ! loadingStarted && 'static' !== mode ) {
 			startLoading();
 		}
-	};
-
-	/**
-	 * 欲しいコマに一番近い、読み込めたコマの番号を返す.
-	 *
-	 * @param {number} index 欲しいコマの番号.
-	 * @return {number} 読み込めたコマの番号. 1 枚も無ければ -1.
-	 */
-	const nearestLoaded = ( index ) => {
-		for ( let distance = 0; distance < images.length; distance++ ) {
-			if ( images[ index - distance ] ) {
-				return index - distance;
-			}
-			if ( images[ index + distance ] ) {
-				return index + distance;
-			}
-		}
-		return -1;
 	};
 
 	/**
@@ -392,7 +399,7 @@ function setupSequence( root ) {
 	/**
 	 * スクロールの進み具合(0〜1)を返す.
 	 *
-	 * 固定しているときは、外側の箱の上端が画面の上端に来たときが 0、外側の箱の下端が画面の下端に来たときが 1.
+	 * 固定しているときは、固定の区間の上端が画面の上端に来たときが 0、固定の区間の下端が画面の下端に来たときが 1.
 	 * 視差効果を減らすときは 1(最後のコマ).
 	 *
 	 * @return {number} 進み具合.
@@ -423,7 +430,13 @@ function setupSequence( root ) {
 		}
 
 		const progress = getProgress();
-		wantedIndex = Math.round( progress * ( frames.length - 1 ) );
+		const nextWanted = frameIndexForProgress( progress, frames.length );
+		if ( nextWanted !== wantedIndex ) {
+			wantedIndex = nextWanted;
+			// 今のコマが変わったら、範囲の外のコマを手放し、範囲に入ったコマを読む.
+			releaseOutsideRange();
+			pumpLoads();
+		}
 
 		// .l2dsis-reveal の中身を出すかどうか(style.scss で opacity を切り替える).
 		root.classList.toggle(
@@ -431,7 +444,11 @@ function setupSequence( root ) {
 			'reduced' === mode || progress >= revealAt
 		);
 
-		const index = nearestLoaded( wantedIndex );
+		const index = nearestIndex(
+			( i ) => !! images[ i ],
+			wantedIndex,
+			frames.length
+		);
 		if ( -1 === index || index === drawnIndex ) {
 			return;
 		}
@@ -452,7 +469,6 @@ function setupSequence( root ) {
 			height
 		);
 		drawnIndex = index;
-		root.classList.add( 'is-drawn' );
 	};
 
 	/**
@@ -468,13 +484,20 @@ function setupSequence( root ) {
 	 * コマの一覧を選び直す(最初と、画面の幅が切り替わったとき).
 	 */
 	const selectFrames = () => {
-		const next = pickFrames();
+		const next = pickFrames(
+			mobileQuery.matches,
+			desktopFrames,
+			mobileFrames
+		);
 		if ( next === frames ) {
 			return;
 		}
 		frames = next;
 		images = frames.map( () => null );
 		requested = frames.map( () => false );
+		inFlight = frames.map( () => false );
+		// PC 用と SP 用でコマの大きさが違うので、1 コマの画素数は測り直す.
+		pixelsPerFrame = 0;
 		drawnIndex = -1;
 		if ( loadingStarted ) {
 			pumpLoads();
@@ -554,12 +577,14 @@ function setupSequence( root ) {
 }
 
 /**
- * ページの中の .l2dsis-sequence をすべて動かす.
+ * ページの中の .l2dsis-sequence をすべて動かす. 画素数の予算は、ブロックの数で等しく分ける.
  */
 const setupAll = () => {
-	document
-		.querySelectorAll( '.l2dsis-sequence.has-frames' )
-		.forEach( setupSequence );
+	const roots = document.querySelectorAll( '.l2dsis-sequence.has-frames' );
+	const budgetPixels = Math.floor(
+		PAGE_DECODED_PIXEL_BUDGET / Math.max( 1, roots.length )
+	);
+	roots.forEach( ( root ) => setupSequence( root, budgetPixels ) );
 };
 
 // viewScript が <head> で読まれた場合でもブロックを見つけられるよう、読み込み中なら DOM ができるのを待つ.

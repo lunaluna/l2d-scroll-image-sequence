@@ -98,7 +98,7 @@ jobs:
         run: vendor/bin/phpunit
 
   js:
-    name: JS / CSS lint and build check
+    name: JS / CSS lint, unit tests and build check
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -119,6 +119,9 @@ jobs:
       - name: Lint CSS
         run: npm run lint:css
 
+      - name: Run JS unit tests (Vitest)
+        run: npm run test:unit
+
       # build/ はコミットしたものがそのまま配布の ZIP に入る(リリースではビルドしない).
       # src/ を変えてビルドし忘れたままコミットしていないかを、ビルドし直して比べて確かめる.
       - name: Check that build/ is up to date
@@ -138,7 +141,7 @@ jobs:
           build-dir: '.'
           # 開発用ファイル(配布物には含まれない. .distignore を参照)は検査対象から除外する.
           exclude-directories: '.github,vendor,node_modules,tests,bin,lib,src'
-          exclude-files: '.editorconfig,.gitignore,.distignore,composer.json,composer.lock,package.json,package-lock.json,phpcs.xml.dist,phpstan.neon.dist,phpunit.xml.dist,mise.toml,CLAUDE.md'
+          exclude-files: '.editorconfig,.gitignore,.distignore,composer.json,composer.lock,package.json,package-lock.json,phpcs.xml.dist,phpstan.neon.dist,phpunit.xml.dist,vitest.config.mjs,mise.toml,CLAUDE.md'
           # Update URI: false を保ったまま GitHub Releases から自己更新する意図的な実装
           # (forced-auto-update-controller と同じ). 既知の false positive として無視する.
           ignore-codes: 'plugin_updater_detected'

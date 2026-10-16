@@ -81,7 +81,7 @@ jobs:
 
   build-check:
     # 配布の ZIP に入る build/ が、src/ からビルドし直したものと同じかを確かめる.
-    name: JS / CSS lint and build check
+    name: JS / CSS lint, unit tests and build check
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -99,6 +99,9 @@ jobs:
         run: |
           npm run lint:js
           npm run lint:css
+
+      - name: Run JS unit tests (Vitest)
+        run: npm run test:unit
 
       - name: Check that build/ is up to date
         run: |
