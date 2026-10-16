@@ -1,0 +1,382 @@
+# Copyright (C) 2026 lunaluna_dev
+# This file is distributed under the GPLv2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Scroll Image Sequence 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/lunaluna/l2d-scroll-image-sequence/issues\n"
+"Last-Translator: lunaluna_dev\n"
+"Language-Team: Japanese\n"
+"MIME-Version: 1.0\n"
+"Language: ja\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-16T00:15:06+00:00\n"
+"PO-Revision-Date: 2026-10-16 09:30+0900\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: l2d-scroll-image-sequence\n"
+
+#. Plugin Name of the plugin
+#: l2d-scroll-image-sequence.php
+msgid "Scroll Image Sequence"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: l2d-scroll-image-sequence.php
+msgid "https://github.com/lunaluna/l2d-scroll-image-sequence"
+msgstr ""
+
+#. Description of the plugin
+#: l2d-scroll-image-sequence.php
+msgid "Plays an image sequence on a canvas in sync with page scroll while the section is pinned."
+msgstr "セクションを画面に固定し、スクロールに合わせて連番の画像(画像シーケンス)を canvas に描きます。"
+
+#. Author of the plugin
+#: l2d-scroll-image-sequence.php
+msgid "lunaluna_dev"
+msgstr ""
+
+#. Author URI of the plugin
+#: l2d-scroll-image-sequence.php
+msgid "https://profiles.wordpress.org/lunaluna_dev/"
+msgstr ""
+
+#: includes/class-l2dsis-rest.php:68
+msgid "Sorry, you are not allowed to list image sequences."
+msgstr "画像シーケンスの一覧を見る権限がありません。"
+
+#. translators: %d: post ID.
+#: includes/class-l2dsis-rest.php:110
+#, php-format
+msgid "(no title) #%d"
+msgstr "(タイトルなし) #%d"
+
+#: includes/class-l2dsis-sequences.php:120
+msgid "Image Sequences"
+msgstr "画像シーケンス"
+
+#: includes/class-l2dsis-sequences.php:121
+msgid "Image Sequence"
+msgstr "画像シーケンス"
+
+#: includes/class-l2dsis-sequences.php:122
+msgid "Add New Image Sequence"
+msgstr "画像シーケンスを新規追加"
+
+#: includes/class-l2dsis-sequences.php:123
+msgid "Edit Image Sequence"
+msgstr "画像シーケンスを編集"
+
+#: includes/class-l2dsis-sequences.php:124
+msgid "New Image Sequence"
+msgstr "新規画像シーケンス"
+
+#: includes/class-l2dsis-sequences.php:125
+msgid "Search Image Sequences"
+msgstr "画像シーケンスを検索"
+
+#: includes/class-l2dsis-sequences.php:126
+msgid "No image sequences found."
+msgstr "画像シーケンスが見つかりませんでした。"
+
+#: includes/class-l2dsis-sequences.php:127
+msgid "No image sequences found in Trash."
+msgstr "ゴミ箱に画像シーケンスは見つかりませんでした。"
+
+#: includes/class-l2dsis-sequences.php:128
+msgid "All Image Sequences"
+msgstr "画像シーケンス一覧"
+
+#: includes/class-l2dsis-sequences.php:152
+msgid "Frames"
+msgstr "コマ画像"
+
+#. translators: %d: number of frames.
+#: includes/class-l2dsis-sequences.php:194
+#, php-format
+msgid "This sequence has %d frame."
+msgid_plural "This sequence has %d frames."
+msgstr[0] "このシーケンスのコマは %d 枚です。"
+
+#: includes/class-l2dsis-sequences.php:206
+msgid "First frame"
+msgstr "最初のコマ"
+
+#: includes/class-l2dsis-sequences.php:210
+msgid "Last frame"
+msgstr "最後のコマ"
+
+#: includes/class-l2dsis-sequences.php:217
+msgid "Download frames as ZIP"
+msgstr "コマを ZIP でダウンロード"
+
+#: includes/class-l2dsis-sequences.php:226
+msgid "You are not allowed to upload frames. Ask an editor or administrator to upload the ZIP file."
+msgstr "コマ画像をアップロードする権限がありません。ZIP ファイルのアップロードは、編集者か管理者に依頼してください。"
+
+#: includes/class-l2dsis-sequences.php:235
+msgid "Replace frames with a ZIP file:"
+msgstr "ZIP ファイルでコマを差し替える:"
+
+#: includes/class-l2dsis-sequences.php:235
+msgid "Upload a ZIP file of frames:"
+msgstr "コマ画像の ZIP ファイルをアップロード:"
+
+#. translators: %s: maximum upload file size.
+#: includes/class-l2dsis-sequences.php:244
+#, php-format
+msgid "Put WebP, JPEG or PNG images in the ZIP. Frames are ordered by file name (natural order, e.g. 2 before 10). Other files are ignored. Maximum upload size: %s."
+msgstr "ZIP には WebP・JPEG・PNG の画像を入れてください。コマの順番はファイル名の自然順です(例: 2 は 10 より前)。ほかのファイルは取り込みません。アップロードできる最大サイズ: %s"
+
+#: includes/class-l2dsis-sequences.php:282
+msgid "You are not allowed to upload frames for this sequence."
+msgstr "このシーケンスにコマ画像をアップロードする権限がありません。"
+
+#: includes/class-l2dsis-sequences.php:298
+msgid "The uploaded file could not be read."
+msgstr "アップロードしたファイルを読み込めませんでした。"
+
+#: includes/class-l2dsis-sequences.php:305
+msgid "Please upload a ZIP file."
+msgstr "ZIP ファイルをアップロードしてください。"
+
+#. translators: %d: number of frames.
+#: includes/class-l2dsis-sequences.php:317
+#, php-format
+msgid "Imported %d frame."
+msgid_plural "Imported %d frames."
+msgstr[0] "%d 枚のコマを取り込みました。"
+
+#. translators: %d: number of ignored files.
+#: includes/class-l2dsis-sequences.php:323
+#, php-format
+msgid "%d other file in the ZIP file was not imported."
+msgid_plural "%d other files in the ZIP file were not imported."
+msgstr[0] "ZIP の中のほかのファイル %d 個は取り込みませんでした。"
+
+#: includes/class-l2dsis-sequences.php:355
+msgid "The PHP ZipArchive extension is required to import frames."
+msgstr "コマを取り込むには、PHP の ZipArchive 拡張が必要です。"
+
+#: includes/class-l2dsis-sequences.php:359
+msgid "Could not access the filesystem."
+msgstr "ファイルシステムにアクセスできませんでした。"
+
+#: includes/class-l2dsis-sequences.php:365
+msgid "Could not open the ZIP file. It may be broken."
+msgstr "ZIP ファイルを開けませんでした。壊れている可能性があります。"
+
+#: includes/class-l2dsis-sequences.php:378
+#: includes/class-l2dsis-sequences.php:593
+msgid "Could not create a temporary folder."
+msgstr "一時フォルダーを作成できませんでした。"
+
+#: includes/class-l2dsis-sequences.php:397
+msgid "The ZIP file has no WebP, JPEG or PNG images. The current frames were kept."
+msgstr "ZIP ファイルに WebP・JPEG・PNG の画像がありません。今のコマはそのまま残しました。"
+
+#: includes/class-l2dsis-sequences.php:402
+msgid "Could not create the folder for this sequence."
+msgstr "このシーケンスのフォルダーを作成できませんでした。"
+
+#. translators: 1: number of files in the ZIP file, 2: maximum number.
+#: includes/class-l2dsis-sequences.php:479
+#, php-format
+msgid "The ZIP file has %1$d files, more than the limit (%2$d). The current frames were kept."
+msgstr "ZIP ファイルにファイルが %1$d 個あり、上限(%2$d 個)を超えています。今のコマはそのまま残しました。"
+
+#. translators: 1: file name, 2: maximum size.
+#: includes/class-l2dsis-sequences.php:524
+#, php-format
+msgid "The image %1$s is larger than the limit (%2$s). The current frames were kept."
+msgstr "画像 %1$s が上限(%2$s)を超えています。今のコマはそのまま残しました。"
+
+#. translators: %s: maximum size.
+#: includes/class-l2dsis-sequences.php:537
+#, php-format
+msgid "The images in the ZIP file are larger than the limit in total (%s). The current frames were kept."
+msgstr "ZIP ファイルの画像の合計が上限(%s)を超えています。今のコマはそのまま残しました。"
+
+#. translators: %s: file name.
+#: includes/class-l2dsis-sequences.php:551
+#, php-format
+msgid "The ZIP file has more than one image named %s. Frame file names must be unique. The current frames were kept."
+msgstr "ZIP ファイルに %s という名前の画像が複数あります。コマのファイル名は重ならないようにしてください。今のコマはそのまま残しました。"
+
+#. translators: %d: maximum number of frames.
+#: includes/class-l2dsis-sequences.php:567
+#, php-format
+msgid "The ZIP file has more images than the limit (%d frames). The current frames were kept."
+msgstr "ZIP ファイルの画像が上限(%d 枚)を超えています。今のコマはそのまま残しました。"
+
+#: includes/class-l2dsis-sequences.php:616
+msgid "Could not read an image in the ZIP file. It may be broken."
+msgstr "ZIP ファイルの中の画像を読み込めませんでした。壊れている可能性があります。"
+
+#: includes/class-l2dsis-sequences.php:621
+msgid "Could not write an image to the temporary folder."
+msgstr "一時フォルダーに画像を書き込めませんでした。"
+
+#. translators: 1: file name, 2: image width, 3: image height, 4: maximum number of pixels.
+#: includes/class-l2dsis-sequences.php:640
+#, php-format
+msgid "The image %1$s is %2$d × %3$d pixels, more than the limit (%4$s pixels). The current frames were kept."
+msgstr "画像 %1$s は %2$d × %3$d ピクセルで、上限(%4$s ピクセル)を超えています。今のコマはそのまま残しました。"
+
+#. translators: %s: error message from WordPress.
+#: includes/class-l2dsis-sequences.php:703
+#, php-format
+msgid "Could not save the frames: %s The current frames were kept."
+msgstr "コマを保存できませんでした: %s 今のコマはそのまま残しました。"
+
+#: includes/class-l2dsis-sequences.php:713
+#: includes/class-l2dsis-sequences.php:722
+msgid "Could not replace the frames. The current frames were kept."
+msgstr "コマを差し替えられませんでした。今のコマはそのまま残しました。"
+
+#: includes/class-l2dsis-sequences.php:797
+msgid "You are not allowed to download the frames of this sequence."
+msgstr "このシーケンスのコマをダウンロードする権限がありません。"
+
+#: includes/class-l2dsis-sequences.php:802
+msgid "This sequence has no frames."
+msgstr "このシーケンスにはコマがありません。"
+
+#: includes/class-l2dsis-sequences.php:806
+msgid "The PHP ZipArchive extension is required to download frames."
+msgstr "コマをダウンロードするには、PHP の ZipArchive 拡張が必要です。"
+
+#: includes/class-l2dsis-sequences.php:819
+#: includes/class-l2dsis-sequences.php:830
+msgid "Could not create the ZIP file."
+msgstr "ZIP ファイルを作成できませんでした。"
+
+#. translators: %s: maximum upload file size.
+#: includes/class-l2dsis-sequences.php:1038
+#, php-format
+msgid "The ZIP file is larger than the maximum upload size (%s)."
+msgstr "ZIP ファイルが、アップロードできる最大サイズ(%s)を超えています。"
+
+#: includes/class-l2dsis-sequences.php:1042
+msgid "The ZIP file was only partially uploaded. Please try again."
+msgstr "ZIP ファイルが途中までしかアップロードされませんでした。もう一度お試しください。"
+
+#. translators: %d: PHP upload error code.
+#: includes/class-l2dsis-sequences.php:1046
+#, php-format
+msgid "The ZIP file could not be uploaded (error code %d)."
+msgstr "ZIP ファイルをアップロードできませんでした(エラーコード %d)。"
+
+#. translators: 1: required PHP version, 2: required WordPress version, 3: current PHP version, 4: current WordPress version.
+#: includes/functions-activation.php:36
+#, php-format
+msgid "Scroll Image Sequence requires PHP %1$s or higher and WordPress %2$s or higher. You have PHP %3$s and WordPress %4$s."
+msgstr "Scroll Image Sequence には PHP %1$s 以上と WordPress %2$s 以上が必要です。お使いの環境は PHP %3$s・WordPress %4$s です。"
+
+#: includes/functions-activation.php:45
+msgid "Plugin Activation Error"
+msgstr "プラグインの有効化エラー"
+
+#. translators: 1: sequence title, 2: number of frames.
+#: build/sequence/index.js:2
+#, js-format
+msgid "%1$s (%2$d frames)"
+msgstr "%1$s(%2$d コマ)"
+
+#: build/sequence/index.js:2
+msgid "Could not load image sequences."
+msgstr "画像シーケンスを読み込めませんでした。"
+
+#: build/sequence/index.js:2
+msgid "Image sequence"
+msgstr "画像シーケンス"
+
+#: build/sequence/index.js:2
+msgid "Sequence"
+msgstr "シーケンス"
+
+#: build/sequence/index.js:2
+msgid "— Select —"
+msgstr "— 選択 —"
+
+#: build/sequence/index.js:2
+msgid "Sequence for small screens"
+msgstr "小さい画面用のシーケンス"
+
+#: build/sequence/index.js:2
+msgid "Used when the screen is at or below the breakpoint (1024px by default)."
+msgstr "画面の幅が切り替え幅(初期値 1024px)以下のときに使います。"
+
+#: build/sequence/index.js:2
+msgid "Same as above"
+msgstr "上と同じ"
+
+#: build/sequence/index.js:2
+msgid "Scroll length (× screen height)"
+msgstr "スクロールの長さ(画面の高さの倍数)"
+
+#: build/sequence/index.js:2
+msgid "How far the visitor scrolls, in screen heights, to play all frames while the section is pinned."
+msgstr "セクションを固定しているあいだに、画面の高さの何倍スクロールすると最後のコマまで進むかを決めます。"
+
+#: build/sequence/index.js:2
+msgid "Reveal point"
+msgstr "中身を出す位置"
+
+#: build/sequence/index.js:2
+msgid "Blocks inside with the \"l2dsis-reveal\" class fade in when playback reaches this point (0 = start, 1 = end). Their child elements appear one after another."
+msgstr "中の「l2dsis-reveal」クラスを付けたブロックは、再生がこの位置(0 = 最初、1 = 最後)に来るとフェードインします。その子要素は 1 つずつ順に現れます。"
+
+#: build/sequence/index.js:2
+msgid "Small screens"
+msgstr "小さい画面"
+
+#: build/sequence/index.js:2
+msgid "On small screens, top-level blocks inside with the \"l2dsis-after-mobile\" class move below the pinned area, right under the frames. Blocks nested in a group are not moved: put a group that carries your theme classes outside this block instead."
+msgstr "小さい画面では、中の直下にある「l2dsis-after-mobile」クラスを付けたブロックを、固定した領域の外(コマのすぐ下)に移します。グループの中のブロックは移しません。テーマのクラスを付けたグループは、このブロックの外側に置いてください。"
+
+#: build/sequence/index.js:2
+msgid "0 uses the same scroll length as large screens."
+msgstr "0 にすると、大きい画面と同じ長さになります。"
+
+#: build/sequence/index.js:2
+msgid "Minimum frame height"
+msgstr "コマの枠の最小の高さ"
+
+#: build/sequence/index.js:2
+msgid "A CSS length such as 330px or 100vh. The frame becomes full width and at least this tall (up to the screen height), and the frames are cropped to fill it. Leave empty to fit the whole frame. Other values are ignored."
+msgstr "330px や 100vh のような CSS の長さを入れます。枠は幅いっぱいになり、高さは少なくともこの値(画面の高さまで)になって、はみ出す分は切り抜きます。空にすると、コマ全体が入る枠になります。ほかの形の値は無視します。"
+
+#: build/sequence/index.js:2
+msgid "Select an image sequence in the block settings."
+msgstr "ブロックの設定で画像シーケンスを選んでください。"
+
+#: build/sequence/block.json
+msgctxt "block title"
+msgid "Scroll Image Sequence"
+msgstr ""
+
+#: build/sequence/block.json
+msgctxt "block description"
+msgid "Plays an image sequence on a canvas in sync with page scroll while the section is pinned."
+msgstr "セクションを画面に固定し、スクロールに合わせて連番の画像(画像シーケンス)を canvas に描きます。"
+
+#: build/sequence/block.json
+msgctxt "block keyword"
+msgid "image sequence"
+msgstr "画像シーケンス"
+
+#: build/sequence/block.json
+msgctxt "block keyword"
+msgid "scroll"
+msgstr "スクロール"
+
+#: build/sequence/block.json
+msgctxt "block keyword"
+msgid "canvas"
+msgstr "キャンバス"
+
+#: build/sequence/block.json
+msgctxt "block keyword"
+msgid "animation"
+msgstr "アニメーション"
