@@ -846,13 +846,15 @@ class L2dsis_Sequences {
 	 * 投稿を完全に削除したら、シーケンスのフォルダも消す.
 	 *
 	 * ゴミ箱に入れただけでは呼ばれない(wp_delete_post() の中で呼ばれる).
+	 * 渡される $post は、wp_delete_post() が get_post() で WP_Post にしてから渡す(wp-includes/post.php)ので、
+	 * 型の判定はせず投稿タイプだけを見る(PHPStan 2.x の instanceof.alwaysTrue の指摘で外した).
 	 *
 	 * @param int     $post_id 投稿 ID.
 	 * @param WP_Post $post    削除する投稿.
 	 * @return void
 	 */
 	public static function delete_files( $post_id, $post ) {
-		if ( ! $post instanceof WP_Post || self::POST_TYPE !== $post->post_type ) {
+		if ( self::POST_TYPE !== $post->post_type ) {
 			return;
 		}
 
