@@ -230,6 +230,16 @@ function move_dir( $from, $to ) {
 }
 
 /**
+ * Wp_mkdir_p() のスタブ. フォルダを親ごと作る.
+ *
+ * @param string $target フォルダ.
+ * @return bool あれば true.
+ */
+function wp_mkdir_p( $target ) {
+	return is_dir( $target ) || mkdir( $target, 0777, true );
+}
+
+/**
  * Get_post_type() のスタブ.
  *
  * @param int $post_id 投稿 ID.

@@ -359,6 +359,30 @@ class L2dsis_Sequences {
 			return new WP_Error( 'l2dsis_fs_unavailable', __( 'Could not access the filesystem.', 'l2d-scroll-image-sequence' ) );
 		}
 
+		// 同じシーケンスへの取り込みが重なると、frames-new/・frames-old/ を互いに消したり動かしたりしてコマを失う
+		// (2026-10-16 の最終レビューの指摘 1). 投稿 ID ごとのロックを取り、取れなければ今のコマに触らずに断る.
+		$lock = self::acquire_import_lock( $post_id );
+		if ( is_wp_error( $lock ) ) {
+			return $lock;
+		}
+
+		try {
+			return self::import_zip_locked( $post_id, $zip_path );
+		} finally {
+			self::release_import_lock( $lock );
+		}
+	}
+
+	/**
+	 * ロックを取ったあとの取り込みの本体(import_zip() から呼ぶ).
+	 *
+	 * @param int    $post_id  投稿 ID.
+	 * @param string $zip_path 上げられた ZIP のパス.
+	 * @return array{frames: int, skipped: int}|WP_Error 取り込んだコマ数と捨てたファイル数. 失敗したら WP_Error.
+	 */
+	private static function import_zip_locked( $post_id, $zip_path ) {
+		global $wp_filesystem;
+
 		$zip    = new ZipArchive();
 		$opened = $zip->open( $zip_path );
 		if ( true !== $opened ) {
@@ -417,6 +441,71 @@ class L2dsis_Sequences {
 			$zip->close();
 			self::delete_dir( $work_dir );
 		}
+	}
+
+	/**
+	 * 取り込みのロックのファイルのパス. uploads のこのプラグインのフォルダの直下に、投稿 ID ごとに 1 つ.
+	 *
+	 * シーケンスのフォルダの中に置かないのは、そのフォルダを消したり作り直したりしてもロックが変わらないようにするため.
+	 *
+	 * @param int $post_id 投稿 ID.
+	 * @return string パス.
+	 */
+	private static function get_lock_path( $post_id ) {
+		return self::get_base_dir() . '/' . absint( $post_id ) . '.lock';
+	}
+
+	/**
+	 * 投稿 ID ごとの、取り込みのロックを取る.
+	 *
+	 * ロックには flock() の待たない排他ロック(LOCK_EX | LOCK_NB)を使う. PHP の処理が途中で終わっても OS がロックを放すので、
+	 * 「放されずに残ったロック」を何分で無効にするか、を決めなくてよい.
+	 * - ほかの処理が持っていれば、WP_Error(l2dsis_import_locked)を返す
+	 * - ファイルシステムが flock() に対応していない(ほかが持っている以外の理由で失敗した)ときは、ロックなしで進める
+	 *   (すべての取り込みを断ると使えなくなるため). NFS などでは効かないことがある(README に書く)
+	 *
+	 * @param int $post_id 投稿 ID.
+	 * @return resource|null|WP_Error ロックを持つファイル. ロックなしで進めるときは null. 取り込み中なら WP_Error.
+	 */
+	private static function acquire_import_lock( $post_id ) {
+		$base_dir = self::get_base_dir();
+		if ( ! wp_mkdir_p( $base_dir ) ) {
+			return new WP_Error( 'l2dsis_mkdir_failed', __( 'Could not create the folder for image sequences in the uploads folder.', 'l2d-scroll-image-sequence' ) );
+		}
+
+		// 'c' は、無ければ作り、あれば中身を消さずに開く. 中身は使わない(0 バイト).
+		$handle = fopen( self::get_lock_path( $post_id ), 'c' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- flock() には PHP のファイルハンドルが要る(WP_Filesystem には無い).
+		if ( false === $handle ) {
+			return null;
+		}
+
+		$would_block = 0;
+		if ( ! flock( $handle, LOCK_EX | LOCK_NB, $would_block ) ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- 上の fopen() と対.
+			if ( $would_block ) {
+				return new WP_Error( 'l2dsis_import_locked', __( 'Another import for this sequence is in progress. The current frames were kept. Try again later.', 'l2d-scroll-image-sequence' ) );
+			}
+			return null;
+		}
+
+		return $handle;
+	}
+
+	/**
+	 * 取り込みのロックを放す.
+	 *
+	 * ロックのファイルは消さない. 放した直後に消すと、その間に別の処理が開いたファイルと、さらに別の処理が新しく作った
+	 * ファイルで、2 つの処理が同時にロックを持ててしまうため(中身は 0 バイト. 投稿の削除とアンインストールで消える).
+	 *
+	 * @param resource|null $handle acquire_import_lock() が返したファイル.
+	 * @return void
+	 */
+	private static function release_import_lock( $handle ) {
+		if ( ! is_resource( $handle ) ) {
+			return;
+		}
+		flock( $handle, LOCK_UN );
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- acquire_import_lock() の fopen() と対.
 	}
 
 	/**
@@ -859,6 +948,8 @@ class L2dsis_Sequences {
 		}
 
 		self::delete_dir( self::get_dir( $post_id ) );
+		// 取り込みのロックのファイルも消す. ロックを放すときには消していないため.
+		wp_delete_file( self::get_lock_path( $post_id ) );
 		self::flush_frame_files_cache( $post_id );
 	}
 
