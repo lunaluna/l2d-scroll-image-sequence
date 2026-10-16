@@ -22,12 +22,16 @@
  * Internal dependencies
  */
 import {
+	LOADER_FAR,
+	LOADER_NEAR,
+	LOADER_VISIBLE,
 	clamp,
 	frameIndexForProgress,
 	keepRange,
 	maxFramesForBudget,
 	nearestIndex,
 	nextIndexToLoad,
+	orderLoaders,
 	parseFrames,
 	pickFrames,
 } from './frames';
@@ -75,9 +79,10 @@ const PAGE_DECODED_PIXEL_BUDGET = 200000000;
 const LOAD_STRIDE = 8;
 
 /**
- * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() を持つ.
+ * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() と、
+ * 画面との近さを返す関数 priority()(LOADER_VISIBLE・LOADER_NEAR・LOADER_FAR)を持つ.
  *
- * @type {Array<{nextLoad: () => ({url: string, done: (image: HTMLImageElement|null) => void}|null)}>}
+ * @type {Array<{nextLoad: () => ({url: string, done: (image: HTMLImageElement|null) => void}|null), priority: () => number}>}
  */
 const loaders = [];
 
@@ -87,37 +92,62 @@ const loaders = [];
 let activeLoads = 0;
 
 /**
- * 読み込みの空きがあれば、登録したブロックを順番に回って 1 件ずつ読み始める.
- * 1 つのブロックが空きを独り占めしないよう、1 周につき 1 ブロック 1 件にする.
- * 読み込みが 1 件終わるたび・ブロックが読み始めてよくなったたび・今のコマが変わったたびに呼ぶ.
+ * 同じ近さのブロックの中で、回す順番の先頭をずらす数. pumpLoads() のたびに 1 増やす.
+ */
+let pumpRotation = 0;
+
+/**
+ * 1 件の読み込みを始める.
+ *
+ * @param {{url: string, done: (image: HTMLImageElement|null) => void}} task 読むコマ.
+ */
+function startLoad( task ) {
+	activeLoads++;
+
+	const image = new window.Image();
+	image.decoding = 'async';
+	const finish = ( loaded ) => {
+		activeLoads--;
+		task.done( loaded ? image : null );
+		pumpLoads();
+	};
+	image.onload = () => finish( true );
+	image.onerror = () => finish( false );
+	image.src = task.url;
+}
+
+/**
+ * 読み込みの空きがあれば、画面に近いブロックから順に読み始める.
+ *
+ * まず画面の中のブロックで空きを埋め、余ったときだけ近い(先読みの範囲の)ブロックに回す. 遠いブロックは読まない
+ * (2026-10-16【A】の指摘. ページの上のブロックから順に回していたので、PC で #21 へ飛ぶと、画面の外になった #19 が
+ * 最後のコマのまわりを読み直して枠を取り続け、#21 のコマが 5Mbps で 11.5 秒読まれなかった).
+ * 同じ近さのブロックどうしは 1 周に 1 ブロック 1 件にし、回すたびに先頭をずらして、独り占めしないようにする.
+ * 読み込み中のコマは、ブロックが遠くなっても止めない(届いたときに、範囲の外なら捨てる).
+ * 読み込みが 1 件終わるたび・ブロックが読み始めてよくなったたび・今のコマが変わったたび・近さが変わったたびに呼ぶ.
  */
 function pumpLoads() {
-	let started = true;
-	while ( activeLoads < MAX_CONCURRENT_LOADS && started ) {
-		started = false;
-		for ( const loader of loaders ) {
-			if ( activeLoads >= MAX_CONCURRENT_LOADS ) {
-				break;
-			}
-			const task = loader.nextLoad();
-			if ( ! task ) {
-				continue;
-			}
-			started = true;
-			activeLoads++;
+	const priorities = loaders.map( ( loader ) => loader.priority() );
 
-			const image = new window.Image();
-			image.decoding = 'async';
-			const finish = ( loaded ) => {
-				activeLoads--;
-				task.done( loaded ? image : null );
-				pumpLoads();
-			};
-			image.onload = () => finish( true );
-			image.onerror = () => finish( false );
-			image.src = task.url;
+	for ( const level of [ LOADER_VISIBLE, LOADER_NEAR ] ) {
+		const order = orderLoaders( priorities, level, pumpRotation );
+		let started = true;
+		while ( activeLoads < MAX_CONCURRENT_LOADS && started ) {
+			started = false;
+			for ( const index of order ) {
+				if ( activeLoads >= MAX_CONCURRENT_LOADS ) {
+					break;
+				}
+				const task = loaders[ index ].nextLoad();
+				if ( task ) {
+					started = true;
+					startLoad( task );
+				}
+			}
 		}
 	}
+
+	pumpRotation = ( pumpRotation + 1 ) % Math.max( 1, loaders.length );
 }
 
 /**
@@ -560,25 +590,57 @@ function setupSequence( root, budgetPixels ) {
 		posterImage.addEventListener( 'error', onPosterDone, { once: true } );
 	}
 
+	// 画面との近さ. 2 つの IntersectionObserver で見張り続ける(読み込みのキューの順番に使う. pumpLoads() を参照).
+	// IntersectionObserver が無いブラウザでは、画面の中として扱う(今までどおり読む).
+	const hasObserver = 'IntersectionObserver' in window;
+	let isNear = ! hasObserver;
+	let isVisible = ! hasObserver;
+
 	// ページ全体の読み込みのキューに登録する(読み始めるのは startLoading() のあと).
-	loaders.push( { nextLoad } );
+	loaders.push( {
+		nextLoad,
+		priority: () => {
+			if ( isVisible ) {
+				return LOADER_VISIBLE;
+			}
+			return isNear ? LOADER_NEAR : LOADER_FAR;
+		},
+	} );
 
 	selectFrames();
 	updateMode();
 
-	// 箱が画面に近づいたらコマを読み始める. 1 回で十分なので、範囲に入ったら見張るのをやめる.
-	if ( 'IntersectionObserver' in window ) {
-		const observer = new window.IntersectionObserver(
-			( entries ) => {
-				if ( entries.some( ( entry ) => entry.isIntersecting ) ) {
-					observer.disconnect();
-					nearViewport = true;
-					maybeStartLoading();
-				}
-			},
+	if ( hasObserver ) {
+		/**
+		 * 見張りの結果(同じ要素の通知が複数来たら最後のもの)を、近さの印に入れて、読み込みのキューを動かす.
+		 *
+		 * @param {IntersectionObserverEntry[]}     entries 通知.
+		 * @param {(intersecting: boolean) => void} apply   印を変える関数.
+		 */
+		const watch = ( entries, apply ) => {
+			apply( entries[ entries.length - 1 ].isIntersecting );
+			pumpLoads();
+		};
+
+		// 先読みの範囲. 初めて入ったら読み始める. 出たら、そのブロックのコマは読まない(戻れば、そのときの位置から読む).
+		new window.IntersectionObserver(
+			( entries ) =>
+				watch( entries, ( intersecting ) => {
+					isNear = intersecting;
+					if ( intersecting ) {
+						nearViewport = true;
+						maybeStartLoading();
+					}
+				} ),
 			{ rootMargin: PRELOAD_ROOT_MARGIN }
-		);
-		observer.observe( root );
+		).observe( root );
+
+		// 画面の中. 画面の中のブロックを、近いだけのブロックより先に読む.
+		new window.IntersectionObserver( ( entries ) =>
+			watch( entries, ( intersecting ) => {
+				isVisible = intersecting;
+			} )
+		).observe( root );
 	} else {
 		nearViewport = true;
 		maybeStartLoading();

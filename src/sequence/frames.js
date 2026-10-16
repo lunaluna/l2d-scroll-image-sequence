@@ -160,3 +160,35 @@ export function nextIndexToLoad( isRequested, wanted, range, stride = 1 ) {
 
 	return nearestIndex( isOpen, center, range.end + 1 );
 }
+
+/**
+ * ブロックの、画面との近さ. 読み込みのキューは、この順に枠を回す(view.js の pumpLoads()).
+ */
+export const LOADER_VISIBLE = 0;
+export const LOADER_NEAR = 1;
+export const LOADER_FAR = 2;
+
+/**
+ * 指定した近さのブロックの番号を、rotation だけ先頭をずらした順に返す.
+ *
+ * 読み込みのキューは、まず画面の中のブロック、枠が余れば近いブロックの順に回し、遠いブロックは読まない
+ * (2026-10-16【A】の指摘. ページの上のブロックから順に回していたので、下のブロックへ飛ぶと、画面の外になった上のブロックが
+ * 枠を取り続け、下のブロックのコマが 10 秒以上読まれなかった). 同じ近さのブロックどうしは、回すたびに先頭をずらして、
+ * 1 つのブロックが枠を独り占めしないようにする.
+ *
+ * @param {number[]} priorities 各ブロックの近さ(LOADER_VISIBLE・LOADER_NEAR・LOADER_FAR).
+ * @param {number}   level      取り出す近さ.
+ * @param {number}   rotation   先頭をずらす数(0 以上).
+ * @return {number[]} ブロックの番号.
+ */
+export function orderLoaders( priorities, level, rotation ) {
+	const count = priorities.length;
+	const order = [];
+	for ( let offset = 0; offset < count; offset++ ) {
+		const index = ( offset + rotation ) % count;
+		if ( priorities[ index ] === level ) {
+			order.push( index );
+		}
+	}
+	return order;
+}

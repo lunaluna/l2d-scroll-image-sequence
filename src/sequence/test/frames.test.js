@@ -14,6 +14,9 @@ import { describe, expect, it } from 'vitest';
  * Internal dependencies
  */
 import {
+	LOADER_FAR,
+	LOADER_NEAR,
+	LOADER_VISIBLE,
 	MIN_KEPT_FRAMES,
 	clamp,
 	frameIndexForProgress,
@@ -21,6 +24,7 @@ import {
 	maxFramesForBudget,
 	nearestIndex,
 	nextIndexToLoad,
+	orderLoaders,
 	parseFrames,
 	pickFrames,
 } from '../frames';
@@ -207,5 +211,42 @@ describe( 'nextIndexToLoad with a stride (coarse to fine)', () => {
 		expect( nextIndexToLoad( requestedSet( [ 30 ] ), 30, range ) ).toBe(
 			29
 		);
+	} );
+} );
+
+describe( 'orderLoaders', () => {
+	// 0 = #19(画面の外・遠い), 1 = #21(画面の中) のように、近さの一覧から読む順を決める.
+	it( 'returns only the blocks with the given level', () => {
+		const priorities = [ LOADER_FAR, LOADER_VISIBLE, LOADER_NEAR ];
+		expect( orderLoaders( priorities, LOADER_VISIBLE, 0 ) ).toEqual( [
+			1,
+		] );
+		expect( orderLoaders( priorities, LOADER_NEAR, 0 ) ).toEqual( [ 2 ] );
+	} );
+
+	it( 'never returns far blocks for the visible and near levels', () => {
+		const priorities = [ LOADER_FAR, LOADER_VISIBLE ];
+		const order = [
+			...orderLoaders( priorities, LOADER_VISIBLE, 0 ),
+			...orderLoaders( priorities, LOADER_NEAR, 0 ),
+		];
+		expect( order ).toEqual( [ 1 ] );
+	} );
+
+	it( 'rotates the start among blocks with the same level', () => {
+		const priorities = [ LOADER_NEAR, LOADER_NEAR, LOADER_NEAR ];
+		expect( orderLoaders( priorities, LOADER_NEAR, 0 ) ).toEqual( [
+			0, 1, 2,
+		] );
+		expect( orderLoaders( priorities, LOADER_NEAR, 1 ) ).toEqual( [
+			1, 2, 0,
+		] );
+		expect( orderLoaders( priorities, LOADER_NEAR, 2 ) ).toEqual( [
+			2, 0, 1,
+		] );
+	} );
+
+	it( 'returns an empty list when there are no blocks', () => {
+		expect( orderLoaders( [], LOADER_VISIBLE, 0 ) ).toEqual( [] );
 	} );
 } );
