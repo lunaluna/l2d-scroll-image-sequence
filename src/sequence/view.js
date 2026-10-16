@@ -22,12 +22,13 @@
  * Internal dependencies
  */
 import {
-	LOADER_FAR,
-	LOADER_NEAR,
+	LOADER_NEAR_AHEAD,
+	LOADER_NEAR_BEHIND,
 	LOADER_VISIBLE,
 	clamp,
 	frameIndexForProgress,
 	keepRange,
+	loaderPriority,
 	maxFramesForBudget,
 	nearestIndex,
 	nextIndexToLoad,
@@ -80,7 +81,7 @@ const LOAD_STRIDE = 8;
 
 /**
  * 読み込みのキューに登録したブロック. 各要素は、次に読むコマを返す関数 nextLoad() と、
- * 画面との近さを返す関数 priority()(LOADER_VISIBLE・LOADER_NEAR・LOADER_FAR)を持つ.
+ * 画面との近さの段を返す関数 priority()(frames.js の loaderPriority())を持つ.
  *
  * @type {Array<{nextLoad: () => ({url: string, done: (image: HTMLImageElement|null) => void}|null), priority: () => number}>}
  */
@@ -95,6 +96,35 @@ let activeLoads = 0;
  * 同じ近さのブロックの中で、回す順番の先頭をずらす数. pumpLoads() のたびに 1 増やす.
  */
 let pumpRotation = 0;
+
+/**
+ * 最後のスクロールの向き(1 = 下へ・-1 = 上へ). ページを開いた直後は下へ.
+ *
+ * 読み込みの順番に使う: 近いブロックのうち、向きの先にあるブロックを、通り過ぎたブロックより先に読む.
+ * ブロックの中でも、同じ距離なら向きの先のコマを先に読む(2026-10-16 ユーザー提案).
+ */
+let scrollDirection = 1;
+
+/**
+ * 最後に見た window.scrollY. 向きを決めるために使う.
+ */
+let lastScrollY = window.scrollY;
+
+/**
+ * スクロールの向きを覚える. 向きが変わったら、読み込みの順番が変わるので、キューを動かす.
+ */
+function trackScrollDirection() {
+	const y = window.scrollY;
+	if ( y === lastScrollY ) {
+		return;
+	}
+	const direction = y > lastScrollY ? 1 : -1;
+	lastScrollY = y;
+	if ( direction !== scrollDirection ) {
+		scrollDirection = direction;
+		pumpLoads();
+	}
+}
 
 /**
  * 1 件の読み込みを始める.
@@ -129,7 +159,11 @@ function startLoad( task ) {
 function pumpLoads() {
 	const priorities = loaders.map( ( loader ) => loader.priority() );
 
-	for ( const level of [ LOADER_VISIBLE, LOADER_NEAR ] ) {
+	for ( const level of [
+		LOADER_VISIBLE,
+		LOADER_NEAR_AHEAD,
+		LOADER_NEAR_BEHIND,
+	] ) {
 		const order = orderLoaders( priorities, level, pumpRotation );
 		let started = true;
 		while ( activeLoads < MAX_CONCURRENT_LOADS && started ) {
@@ -275,7 +309,8 @@ function setupSequence( root, budgetPixels ) {
 			( i ) => requested[ i ],
 			wantedIndex,
 			currentRange(),
-			LOAD_STRIDE
+			LOAD_STRIDE,
+			scrollDirection
 		);
 		if ( -1 === index ) {
 			return null;
@@ -490,7 +525,8 @@ function setupSequence( root, budgetPixels ) {
 		const index = nearestIndex(
 			( i ) => !! images[ i ],
 			wantedIndex,
-			frames.length
+			frames.length,
+			scrollDirection
 		);
 		if ( -1 === index || index === drawnIndex ) {
 			return;
@@ -599,12 +635,14 @@ function setupSequence( root, budgetPixels ) {
 	// ページ全体の読み込みのキューに登録する(読み始めるのは startLoading() のあと).
 	loaders.push( {
 		nextLoad,
-		priority: () => {
-			if ( isVisible ) {
-				return LOADER_VISIBLE;
-			}
-			return isNear ? LOADER_NEAR : LOADER_FAR;
-		},
+		// 画面より下にあるか(上にあれば false)は、近くて画面の外のときだけ要るので、そのときだけ測る.
+		priority: () =>
+			loaderPriority(
+				isVisible,
+				isNear,
+				! isVisible && isNear && root.getBoundingClientRect().top >= 0,
+				scrollDirection
+			),
 	} );
 
 	selectFrames();
@@ -669,9 +707,16 @@ function setupSequence( root, budgetPixels ) {
  */
 const setupAll = () => {
 	const roots = document.querySelectorAll( '.l2dsis-sequence.has-frames' );
-	const budgetPixels = Math.floor(
-		PAGE_DECODED_PIXEL_BUDGET / Math.max( 1, roots.length )
-	);
+	if ( ! roots.length ) {
+		return;
+	}
+	const budgetPixels = Math.floor( PAGE_DECODED_PIXEL_BUDGET / roots.length );
+	// スクロールの向きは、ページ全体で 1 つだけ見張る. ブロックごとの描画(requestDraw)より先に足して、
+	// 描くときに新しい向きを使えるようにする.
+	lastScrollY = window.scrollY;
+	window.addEventListener( 'scroll', trackScrollDirection, {
+		passive: true,
+	} );
 	roots.forEach( ( root ) => setupSequence( root, budgetPixels ) );
 };
 

@@ -15,12 +15,14 @@ import { describe, expect, it } from 'vitest';
  */
 import {
 	LOADER_FAR,
-	LOADER_NEAR,
+	LOADER_NEAR_AHEAD,
+	LOADER_NEAR_BEHIND,
 	LOADER_VISIBLE,
 	MIN_KEPT_FRAMES,
 	clamp,
 	frameIndexForProgress,
 	keepRange,
+	loaderPriority,
 	maxFramesForBudget,
 	nearestIndex,
 	nextIndexToLoad,
@@ -217,36 +219,94 @@ describe( 'nextIndexToLoad with a stride (coarse to fine)', () => {
 describe( 'orderLoaders', () => {
 	// 0 = #19(画面の外・遠い), 1 = #21(画面の中) のように、近さの一覧から読む順を決める.
 	it( 'returns only the blocks with the given level', () => {
-		const priorities = [ LOADER_FAR, LOADER_VISIBLE, LOADER_NEAR ];
+		const priorities = [ LOADER_FAR, LOADER_VISIBLE, LOADER_NEAR_AHEAD ];
 		expect( orderLoaders( priorities, LOADER_VISIBLE, 0 ) ).toEqual( [
 			1,
 		] );
-		expect( orderLoaders( priorities, LOADER_NEAR, 0 ) ).toEqual( [ 2 ] );
+		expect( orderLoaders( priorities, LOADER_NEAR_AHEAD, 0 ) ).toEqual( [
+			2,
+		] );
 	} );
 
 	it( 'never returns far blocks for the visible and near levels', () => {
 		const priorities = [ LOADER_FAR, LOADER_VISIBLE ];
 		const order = [
 			...orderLoaders( priorities, LOADER_VISIBLE, 0 ),
-			...orderLoaders( priorities, LOADER_NEAR, 0 ),
+			...orderLoaders( priorities, LOADER_NEAR_AHEAD, 0 ),
 		];
 		expect( order ).toEqual( [ 1 ] );
 	} );
 
 	it( 'rotates the start among blocks with the same level', () => {
-		const priorities = [ LOADER_NEAR, LOADER_NEAR, LOADER_NEAR ];
-		expect( orderLoaders( priorities, LOADER_NEAR, 0 ) ).toEqual( [
+		const priorities = [
+			LOADER_NEAR_AHEAD,
+			LOADER_NEAR_AHEAD,
+			LOADER_NEAR_AHEAD,
+		];
+		expect( orderLoaders( priorities, LOADER_NEAR_AHEAD, 0 ) ).toEqual( [
 			0, 1, 2,
 		] );
-		expect( orderLoaders( priorities, LOADER_NEAR, 1 ) ).toEqual( [
+		expect( orderLoaders( priorities, LOADER_NEAR_AHEAD, 1 ) ).toEqual( [
 			1, 2, 0,
 		] );
-		expect( orderLoaders( priorities, LOADER_NEAR, 2 ) ).toEqual( [
+		expect( orderLoaders( priorities, LOADER_NEAR_AHEAD, 2 ) ).toEqual( [
 			2, 0, 1,
 		] );
 	} );
 
 	it( 'returns an empty list when there are no blocks', () => {
 		expect( orderLoaders( [], LOADER_VISIBLE, 0 ) ).toEqual( [] );
+	} );
+} );
+
+describe( 'loaderPriority', () => {
+	it( 'puts visible blocks first and far blocks last', () => {
+		expect( loaderPriority( true, true, true, 1 ) ).toBe( LOADER_VISIBLE );
+		expect( loaderPriority( false, false, true, 1 ) ).toBe( LOADER_FAR );
+	} );
+
+	it( 'puts near blocks ahead in the scroll direction before those behind', () => {
+		// 下へスクロール: 画面より下のブロックが先、上(通り過ぎた)が後ろ.
+		expect( loaderPriority( false, true, true, 1 ) ).toBe(
+			LOADER_NEAR_AHEAD
+		);
+		expect( loaderPriority( false, true, false, 1 ) ).toBe(
+			LOADER_NEAR_BEHIND
+		);
+		// 上へスクロール: 画面より上のブロックが先.
+		expect( loaderPriority( false, true, false, -1 ) ).toBe(
+			LOADER_NEAR_AHEAD
+		);
+		expect( loaderPriority( false, true, true, -1 ) ).toBe(
+			LOADER_NEAR_BEHIND
+		);
+	} );
+} );
+
+describe( 'scroll direction within a block', () => {
+	const loaded = ( indexes ) => ( index ) => indexes.includes( index );
+	const requestedSet = loaded;
+
+	it( 'prefers the later frame on a tie when scrolling down', () => {
+		expect( nearestIndex( loaded( [ 3, 7 ] ), 5, 10, 1 ) ).toBe( 7 );
+		expect( nearestIndex( loaded( [ 3, 7 ] ), 5, 10, -1 ) ).toBe( 3 );
+	} );
+
+	it( 'loads ahead in the scroll direction first', () => {
+		const range = { start: 0, end: 89 };
+		// 30 の次: 下へなら 31, 上へなら 29(間引かないとき).
+		expect(
+			nextIndexToLoad( requestedSet( [ 30 ] ), 30, range, 1, 1 )
+		).toBe( 31 );
+		expect(
+			nextIndexToLoad( requestedSet( [ 30 ] ), 30, range, 1, -1 )
+		).toBe( 29 );
+		// 間引くとき(8 おき): 28 は 24 と 32 の真ん中. 下へなら 32, 上へなら 24.
+		expect(
+			nextIndexToLoad( requestedSet( [ 28 ] ), 28, range, 8, 1 )
+		).toBe( 32 );
+		expect(
+			nextIndexToLoad( requestedSet( [ 28 ] ), 28, range, 8, -1 )
+		).toBe( 24 );
 	} );
 } );

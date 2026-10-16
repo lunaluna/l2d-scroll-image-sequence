@@ -60,24 +60,29 @@ export function frameIndexForProgress( progress, count ) {
 }
 
 /**
- * 欲しいコマに一番近い、条件に合うコマの番号を返す. 同じ距離なら前のコマを選ぶ.
+ * 欲しいコマに一番近い、条件に合うコマの番号を返す.
  *
- * 読み込めていないコマを、読み込めた近いコマで代わりに描くために使う.
+ * 同じ距離なら、direction が 1(下へスクロール = 後ろの番号へ進む)のときは後ろのコマを、それ以外は前のコマを選ぶ.
+ * 読み込めていないコマを、読み込めた近いコマで代わりに描くときや、次に読むコマを選ぶときに使う.
  *
- * @param {(index: number) => boolean} matches 条件(例: 読み込み済みか).
- * @param {number}                     index   欲しいコマの番号.
- * @param {number}                     count   コマの数.
+ * @param {(index: number) => boolean} matches   条件(例: 読み込み済みか).
+ * @param {number}                     index     欲しいコマの番号.
+ * @param {number}                     count     コマの数.
+ * @param {number}                     direction スクロールの向き(1 = 下へ・-1 = 上へ). 省けば -1 と同じ(前のコマが先).
  * @return {number} 条件に合うコマの番号. 無ければ -1.
  */
-export function nearestIndex( matches, index, count ) {
+export function nearestIndex( matches, index, count, direction = -1 ) {
+	const preferLater = 1 === direction;
 	for ( let distance = 0; distance < count; distance++ ) {
 		const earlier = index - distance;
 		const later = index + distance;
-		if ( earlier >= 0 && earlier < count && matches( earlier ) ) {
-			return earlier;
+		const first = preferLater ? later : earlier;
+		const second = preferLater ? earlier : later;
+		if ( first >= 0 && first < count && matches( first ) ) {
+			return first;
 		}
-		if ( later >= 0 && later < count && matches( later ) ) {
-			return later;
+		if ( second >= 0 && second < count && matches( second ) ) {
+			return second;
 		}
 	}
 	return -1;
@@ -128,15 +133,23 @@ export function keepRange( wanted, count, maxKept ) {
  * 1. 今欲しいコマ
  * 2. 間引いたコマ(番号が stride の倍数のコマと、範囲の最後のコマ)のうち、今欲しいコマに近いもの
  * 3. 残りのコマのうち、今欲しいコマに近いもの
+ * 2・3 で同じ距離なら、スクロールの向きの先のコマを先にする(進む方向の絵を先にそろえる. 2026-10-16 ユーザー提案).
  * 間引いたコマがそろえば、そのあいだのコマは近い間引いたコマで代わりに描くので、少ない通信量で全体の動きが出る.
  *
  * @param {(index: number) => boolean}   isRequested 読み込みを出したか.
  * @param {number}                       wanted      今欲しいコマの番号.
  * @param {{start: number, end: number}} range       持つ範囲.
  * @param {number}                       stride      間引きの間隔. 1 なら間引かない(近い順だけ).
+ * @param {number}                       direction   スクロールの向き(1 = 下へ・-1 = 上へ). 省けば -1 と同じ.
  * @return {number} 次に読むコマの番号. 無ければ -1.
  */
-export function nextIndexToLoad( isRequested, wanted, range, stride = 1 ) {
+export function nextIndexToLoad(
+	isRequested,
+	wanted,
+	range,
+	stride = 1,
+	direction = -1
+) {
 	const center = clamp( wanted, range.start, range.end );
 	const isOpen = ( index ) =>
 		index >= range.start && index <= range.end && ! isRequested( index );
@@ -151,22 +164,45 @@ export function nextIndexToLoad( isRequested, wanted, range, stride = 1 ) {
 				isOpen( index ) &&
 				( 0 === index % stride || index === range.end ),
 			center,
-			range.end + 1
+			range.end + 1,
+			direction
 		);
 		if ( -1 !== coarse ) {
 			return coarse;
 		}
 	}
 
-	return nearestIndex( isOpen, center, range.end + 1 );
+	return nearestIndex( isOpen, center, range.end + 1, direction );
 }
 
 /**
- * ブロックの、画面との近さ. 読み込みのキューは、この順に枠を回す(view.js の pumpLoads()).
+ * ブロックの、画面との近さ. 読み込みのキューは、この順に枠を回す(view.js の pumpLoads()). 遠いブロックは読まない.
+ * 画面の中 → 近くてスクロールの向きの先にある → 近くて後ろにある(通り過ぎた) → 遠い(2026-10-16 ユーザー提案).
  */
 export const LOADER_VISIBLE = 0;
-export const LOADER_NEAR = 1;
-export const LOADER_FAR = 2;
+export const LOADER_NEAR_AHEAD = 1;
+export const LOADER_NEAR_BEHIND = 2;
+export const LOADER_FAR = 3;
+
+/**
+ * ブロックの近さの段を決める.
+ *
+ * @param {boolean} isVisible 画面の中か.
+ * @param {boolean} isNear    先読みの範囲の中か.
+ * @param {boolean} isBelow   画面より下にあるか(上にあれば false).
+ * @param {number}  direction スクロールの向き(1 = 下へ・-1 = 上へ).
+ * @return {number} 近さの段(LOADER_VISIBLE・LOADER_NEAR_AHEAD・LOADER_NEAR_BEHIND・LOADER_FAR).
+ */
+export function loaderPriority( isVisible, isNear, isBelow, direction ) {
+	if ( isVisible ) {
+		return LOADER_VISIBLE;
+	}
+	if ( ! isNear ) {
+		return LOADER_FAR;
+	}
+	const ahead = isBelow ? 1 === direction : 1 !== direction;
+	return ahead ? LOADER_NEAR_AHEAD : LOADER_NEAR_BEHIND;
+}
 
 /**
  * 指定した近さのブロックの番号を、rotation だけ先頭をずらした順に返す.
@@ -176,7 +212,7 @@ export const LOADER_FAR = 2;
  * 枠を取り続け、下のブロックのコマが 10 秒以上読まれなかった). 同じ近さのブロックどうしは、回すたびに先頭をずらして、
  * 1 つのブロックが枠を独り占めしないようにする.
  *
- * @param {number[]} priorities 各ブロックの近さ(LOADER_VISIBLE・LOADER_NEAR・LOADER_FAR).
+ * @param {number[]} priorities 各ブロックの近さ(loaderPriority() の段).
  * @param {number}   level      取り出す近さ.
  * @param {number}   rotation   先頭をずらす数(0 以上).
  * @return {number[]} ブロックの番号.
