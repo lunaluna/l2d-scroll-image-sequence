@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Scroll Image Sequence 0.1.0\n"
+"Project-Id-Version: Scroll Image Sequence 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/lunaluna/l2d-scroll-image-sequence/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-16T01:10:01+00:00\n"
+"POT-Creation-Date: 2026-10-16T06:29:22+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: l2d-scroll-image-sequence\n"
@@ -49,98 +49,98 @@ msgstr ""
 msgid "(no title) #%d"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:120
+#: includes/class-l2dsis-sequences.php:149
 msgid "Image Sequences"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:121
+#: includes/class-l2dsis-sequences.php:150
 msgid "Image Sequence"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:122
+#: includes/class-l2dsis-sequences.php:151
 msgid "Add New Image Sequence"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:123
+#: includes/class-l2dsis-sequences.php:152
 msgid "Edit Image Sequence"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:124
+#: includes/class-l2dsis-sequences.php:153
 msgid "New Image Sequence"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:125
+#: includes/class-l2dsis-sequences.php:154
 msgid "Search Image Sequences"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:126
+#: includes/class-l2dsis-sequences.php:155
 msgid "No image sequences found."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:127
+#: includes/class-l2dsis-sequences.php:156
 msgid "No image sequences found in Trash."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:128
+#: includes/class-l2dsis-sequences.php:157
 msgid "All Image Sequences"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:152
+#: includes/class-l2dsis-sequences.php:181
 msgid "Frames"
 msgstr ""
 
 #. translators: %d: number of frames.
-#: includes/class-l2dsis-sequences.php:194
+#: includes/class-l2dsis-sequences.php:223
 #, php-format
 msgid "This sequence has %d frame."
 msgid_plural "This sequence has %d frames."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-l2dsis-sequences.php:206
+#: includes/class-l2dsis-sequences.php:235
 msgid "First frame"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:210
+#: includes/class-l2dsis-sequences.php:239
 msgid "Last frame"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:217
+#: includes/class-l2dsis-sequences.php:246
 msgid "Download frames as ZIP"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:226
+#: includes/class-l2dsis-sequences.php:255
 msgid "You are not allowed to upload frames. Ask an editor or administrator to upload the ZIP file."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:235
+#: includes/class-l2dsis-sequences.php:264
 msgid "Replace frames with a ZIP file:"
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:235
+#: includes/class-l2dsis-sequences.php:264
 msgid "Upload a ZIP file of frames:"
 msgstr ""
 
 #. translators: %s: maximum upload file size.
-#: includes/class-l2dsis-sequences.php:244
+#: includes/class-l2dsis-sequences.php:273
 #, php-format
 msgid "Put WebP, JPEG or PNG images in the ZIP. Frames are ordered by file name (natural order, e.g. 2 before 10). Other files are ignored. Maximum upload size: %s."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:282
+#: includes/class-l2dsis-sequences.php:311
 msgid "You are not allowed to upload frames for this sequence."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:298
+#: includes/class-l2dsis-sequences.php:327
 msgid "The uploaded file could not be read."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:305
+#: includes/class-l2dsis-sequences.php:334
 msgid "Please upload a ZIP file."
 msgstr ""
 
 #. translators: %d: number of frames.
-#: includes/class-l2dsis-sequences.php:317
+#: includes/class-l2dsis-sequences.php:346
 #, php-format
 msgid "Imported %d frame."
 msgid_plural "Imported %d frames."
@@ -148,137 +148,137 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of ignored files.
-#: includes/class-l2dsis-sequences.php:323
+#: includes/class-l2dsis-sequences.php:352
 #, php-format
 msgid "%d other file in the ZIP file was not imported."
 msgid_plural "%d other files in the ZIP file were not imported."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-l2dsis-sequences.php:355
+#: includes/class-l2dsis-sequences.php:384
 msgid "The PHP ZipArchive extension is required to import frames."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:359
+#: includes/class-l2dsis-sequences.php:388
 msgid "Could not access the filesystem."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:389
+#: includes/class-l2dsis-sequences.php:418
 msgid "Could not open the ZIP file. It may be broken."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:402
-#: includes/class-l2dsis-sequences.php:682
+#: includes/class-l2dsis-sequences.php:431
+#: includes/class-l2dsis-sequences.php:711
 msgid "Could not create a temporary folder."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:421
+#: includes/class-l2dsis-sequences.php:450
 msgid "The ZIP file has no WebP, JPEG or PNG images. The current frames were kept."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:426
+#: includes/class-l2dsis-sequences.php:455
 msgid "Could not create the folder for this sequence."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:473
+#: includes/class-l2dsis-sequences.php:502
 msgid "Could not create the folder for image sequences in the uploads folder."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:486
+#: includes/class-l2dsis-sequences.php:515
 msgid "Another import for this sequence is in progress. The current frames were kept. Try again later."
 msgstr ""
 
 #. translators: 1: number of files in the ZIP file, 2: maximum number.
-#: includes/class-l2dsis-sequences.php:568
+#: includes/class-l2dsis-sequences.php:597
 #, php-format
 msgid "The ZIP file has %1$d files, more than the limit (%2$d). The current frames were kept."
 msgstr ""
 
 #. translators: 1: file name, 2: maximum size.
-#: includes/class-l2dsis-sequences.php:613
+#: includes/class-l2dsis-sequences.php:642
 #, php-format
 msgid "The image %1$s is larger than the limit (%2$s). The current frames were kept."
 msgstr ""
 
 #. translators: %s: maximum size.
-#: includes/class-l2dsis-sequences.php:626
+#: includes/class-l2dsis-sequences.php:655
 #, php-format
 msgid "The images in the ZIP file are larger than the limit in total (%s). The current frames were kept."
 msgstr ""
 
 #. translators: %s: file name.
-#: includes/class-l2dsis-sequences.php:640
+#: includes/class-l2dsis-sequences.php:669
 #, php-format
 msgid "The ZIP file has more than one image named %s. Frame file names must be unique. The current frames were kept."
 msgstr ""
 
 #. translators: %d: maximum number of frames.
-#: includes/class-l2dsis-sequences.php:656
+#: includes/class-l2dsis-sequences.php:685
 #, php-format
 msgid "The ZIP file has more images than the limit (%d frames). The current frames were kept."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:718
+#: includes/class-l2dsis-sequences.php:747
 msgid "Could not read an image in the ZIP file. It may be broken."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:723
+#: includes/class-l2dsis-sequences.php:752
 msgid "Could not write an image to the temporary folder."
 msgstr ""
 
 #. translators: 1: file name, 2: image width, 3: image height, 4: maximum number of pixels.
-#: includes/class-l2dsis-sequences.php:742
+#: includes/class-l2dsis-sequences.php:771
 #, php-format
 msgid "The image %1$s is %2$d × %3$d pixels, more than the limit (%4$s pixels). The current frames were kept."
 msgstr ""
 
 #. translators: %s: maximum number of pixels.
-#: includes/class-l2dsis-sequences.php:758
+#: includes/class-l2dsis-sequences.php:787
 #, php-format
 msgid "The images in the ZIP file have more pixels in total than the limit (%s pixels). The current frames were kept."
 msgstr ""
 
 #. translators: %s: error message from WordPress.
-#: includes/class-l2dsis-sequences.php:818
+#: includes/class-l2dsis-sequences.php:847
 #, php-format
 msgid "Could not save the frames: %s The current frames were kept."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:828
-#: includes/class-l2dsis-sequences.php:837
+#: includes/class-l2dsis-sequences.php:857
+#: includes/class-l2dsis-sequences.php:866
 msgid "Could not replace the frames. The current frames were kept."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:912
+#: includes/class-l2dsis-sequences.php:941
 msgid "You are not allowed to download the frames of this sequence."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:917
+#: includes/class-l2dsis-sequences.php:946
 msgid "This sequence has no frames."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:921
+#: includes/class-l2dsis-sequences.php:950
 msgid "The PHP ZipArchive extension is required to download frames."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:934
-#: includes/class-l2dsis-sequences.php:944
-#: includes/class-l2dsis-sequences.php:950
+#: includes/class-l2dsis-sequences.php:963
+#: includes/class-l2dsis-sequences.php:973
+#: includes/class-l2dsis-sequences.php:979
 msgid "Could not create the ZIP file."
 msgstr ""
 
 #. translators: %s: maximum upload file size.
-#: includes/class-l2dsis-sequences.php:1162
+#: includes/class-l2dsis-sequences.php:1243
 #, php-format
 msgid "The ZIP file is larger than the maximum upload size (%s)."
 msgstr ""
 
-#: includes/class-l2dsis-sequences.php:1166
+#: includes/class-l2dsis-sequences.php:1247
 msgid "The ZIP file was only partially uploaded. Please try again."
 msgstr ""
 
 #. translators: %d: PHP upload error code.
-#: includes/class-l2dsis-sequences.php:1170
+#: includes/class-l2dsis-sequences.php:1251
 #, php-format
 msgid "The ZIP file could not be uploaded (error code %d)."
 msgstr ""

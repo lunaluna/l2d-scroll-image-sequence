@@ -3,7 +3,7 @@
  * Plugin Name:       Scroll Image Sequence
  * Plugin URI:        https://github.com/lunaluna/l2d-scroll-image-sequence
  * Description:       Plays an image sequence on a canvas in sync with page scroll while the section is pinned.
- * Version:           0.1.0
+ * Version:           1.0.0
  * Requires at least: 6.7
  * Tested up to:      7.1.3
  * Requires PHP:      7.4
