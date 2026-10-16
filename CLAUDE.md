@@ -39,6 +39,7 @@
 | `composer analyse` | PHPStan level 5(メインファイル・`includes/`・`uninstall.php`) | **外で動かす**(並列処理のために手元の TCP ポートを開くので、中では `Operation not permitted` で止まる) |
 | `composer test` | PHPUnit(`tests/`. WordPress のテストスイートは使わず、`tests/bootstrap.php` で必要な関数だけを置き換える) | 中で動く |
 | `npm run lint:js`・`lint:css`・`build` | JS・CSS の lint とビルド | **外で動かす**(`caniuse-lite` の `credential-management.js` が読み取り禁止に当たる) |
+| `npm run test:unit` | Vitest(`src/**/*.test.js`. `@wordpress/scripts` 36 から `test-unit-js` は Vitest. 対象は DOM に触らない `src/sequence/frames.js`) | 外で動かした(中で動くかは未確認) |
 
 - テストで WordPress の関数を新しく使うときは、`tests/bootstrap.php` に代わりの関数を足す. 戻り値はテストごとに `$GLOBALS['l2dsis_test']` で変える
 - 文言を変えたら、`wp i18n make-pot`(`src` などを除く. プランの Step 7 の【P】の途中経過を参照)→ `.po` を直す → `wp i18n make-mo`・`make-json --no-purge` で翻訳ファイルを作り直す

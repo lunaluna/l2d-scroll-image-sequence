@@ -1,5 +1,3 @@
-# Copyright (C) 2026 lunaluna_dev
-# This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
 "Project-Id-Version: Scroll Image Sequence 0.1.0\n"
@@ -7,12 +5,12 @@ msgstr ""
 "Last-Translator: lunaluna_dev\n"
 "Language-Team: Japanese\n"
 "MIME-Version: 1.0\n"
-"Language: ja\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "POT-Creation-Date: 2026-10-16T00:15:06+00:00\n"
-"PO-Revision-Date: 2026-10-16 09:30+0900\n"
+"PO-Revision-Date: 2026-10-16 10:30+0900\n"
+"Language: ja\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: l2d-scroll-image-sequence\n"
 
@@ -162,107 +160,108 @@ msgstr "コマを取り込むには、PHP の ZipArchive 拡張が必要です�
 msgid "Could not access the filesystem."
 msgstr "ファイルシステムにアクセスできませんでした。"
 
-#: includes/class-l2dsis-sequences.php:365
+#: includes/class-l2dsis-sequences.php:389
 msgid "Could not open the ZIP file. It may be broken."
 msgstr "ZIP ファイルを開けませんでした。壊れている可能性があります。"
 
-#: includes/class-l2dsis-sequences.php:378
-#: includes/class-l2dsis-sequences.php:593
+#: includes/class-l2dsis-sequences.php:402
+#: includes/class-l2dsis-sequences.php:682
 msgid "Could not create a temporary folder."
 msgstr "一時フォルダーを作成できませんでした。"
 
-#: includes/class-l2dsis-sequences.php:397
+#: includes/class-l2dsis-sequences.php:421
 msgid "The ZIP file has no WebP, JPEG or PNG images. The current frames were kept."
 msgstr "ZIP ファイルに WebP・JPEG・PNG の画像がありません。今のコマはそのまま残しました。"
 
-#: includes/class-l2dsis-sequences.php:402
+#: includes/class-l2dsis-sequences.php:426
 msgid "Could not create the folder for this sequence."
 msgstr "このシーケンスのフォルダーを作成できませんでした。"
 
 #. translators: 1: number of files in the ZIP file, 2: maximum number.
-#: includes/class-l2dsis-sequences.php:479
+#: includes/class-l2dsis-sequences.php:568
 #, php-format
 msgid "The ZIP file has %1$d files, more than the limit (%2$d). The current frames were kept."
 msgstr "ZIP ファイルにファイルが %1$d 個あり、上限(%2$d 個)を超えています。今のコマはそのまま残しました。"
 
 #. translators: 1: file name, 2: maximum size.
-#: includes/class-l2dsis-sequences.php:524
+#: includes/class-l2dsis-sequences.php:613
 #, php-format
 msgid "The image %1$s is larger than the limit (%2$s). The current frames were kept."
 msgstr "画像 %1$s が上限(%2$s)を超えています。今のコマはそのまま残しました。"
 
 #. translators: %s: maximum size.
-#: includes/class-l2dsis-sequences.php:537
+#: includes/class-l2dsis-sequences.php:626
 #, php-format
 msgid "The images in the ZIP file are larger than the limit in total (%s). The current frames were kept."
 msgstr "ZIP ファイルの画像の合計が上限(%s)を超えています。今のコマはそのまま残しました。"
 
 #. translators: %s: file name.
-#: includes/class-l2dsis-sequences.php:551
+#: includes/class-l2dsis-sequences.php:640
 #, php-format
 msgid "The ZIP file has more than one image named %s. Frame file names must be unique. The current frames were kept."
 msgstr "ZIP ファイルに %s という名前の画像が複数あります。コマのファイル名は重ならないようにしてください。今のコマはそのまま残しました。"
 
 #. translators: %d: maximum number of frames.
-#: includes/class-l2dsis-sequences.php:567
+#: includes/class-l2dsis-sequences.php:656
 #, php-format
 msgid "The ZIP file has more images than the limit (%d frames). The current frames were kept."
 msgstr "ZIP ファイルの画像が上限(%d 枚)を超えています。今のコマはそのまま残しました。"
 
-#: includes/class-l2dsis-sequences.php:616
+#: includes/class-l2dsis-sequences.php:718
 msgid "Could not read an image in the ZIP file. It may be broken."
 msgstr "ZIP ファイルの中の画像を読み込めませんでした。壊れている可能性があります。"
 
-#: includes/class-l2dsis-sequences.php:621
+#: includes/class-l2dsis-sequences.php:723
 msgid "Could not write an image to the temporary folder."
 msgstr "一時フォルダーに画像を書き込めませんでした。"
 
 #. translators: 1: file name, 2: image width, 3: image height, 4: maximum number of pixels.
-#: includes/class-l2dsis-sequences.php:640
+#: includes/class-l2dsis-sequences.php:742
 #, php-format
 msgid "The image %1$s is %2$d × %3$d pixels, more than the limit (%4$s pixels). The current frames were kept."
 msgstr "画像 %1$s は %2$d × %3$d ピクセルで、上限(%4$s ピクセル)を超えています。今のコマはそのまま残しました。"
 
 #. translators: %s: error message from WordPress.
-#: includes/class-l2dsis-sequences.php:703
+#: includes/class-l2dsis-sequences.php:818
 #, php-format
 msgid "Could not save the frames: %s The current frames were kept."
 msgstr "コマを保存できませんでした: %s 今のコマはそのまま残しました。"
 
-#: includes/class-l2dsis-sequences.php:713
-#: includes/class-l2dsis-sequences.php:722
+#: includes/class-l2dsis-sequences.php:828
+#: includes/class-l2dsis-sequences.php:837
 msgid "Could not replace the frames. The current frames were kept."
 msgstr "コマを差し替えられませんでした。今のコマはそのまま残しました。"
 
-#: includes/class-l2dsis-sequences.php:797
+#: includes/class-l2dsis-sequences.php:912
 msgid "You are not allowed to download the frames of this sequence."
 msgstr "このシーケンスのコマをダウンロードする権限がありません。"
 
-#: includes/class-l2dsis-sequences.php:802
+#: includes/class-l2dsis-sequences.php:917
 msgid "This sequence has no frames."
 msgstr "このシーケンスにはコマがありません。"
 
-#: includes/class-l2dsis-sequences.php:806
+#: includes/class-l2dsis-sequences.php:921
 msgid "The PHP ZipArchive extension is required to download frames."
 msgstr "コマをダウンロードするには、PHP の ZipArchive 拡張が必要です。"
 
-#: includes/class-l2dsis-sequences.php:819
-#: includes/class-l2dsis-sequences.php:830
+#: includes/class-l2dsis-sequences.php:934
+#: includes/class-l2dsis-sequences.php:944
+#: includes/class-l2dsis-sequences.php:950
 msgid "Could not create the ZIP file."
 msgstr "ZIP ファイルを作成できませんでした。"
 
 #. translators: %s: maximum upload file size.
-#: includes/class-l2dsis-sequences.php:1038
+#: includes/class-l2dsis-sequences.php:1162
 #, php-format
 msgid "The ZIP file is larger than the maximum upload size (%s)."
 msgstr "ZIP ファイルが、アップロードできる最大サイズ(%s)を超えています。"
 
-#: includes/class-l2dsis-sequences.php:1042
+#: includes/class-l2dsis-sequences.php:1166
 msgid "The ZIP file was only partially uploaded. Please try again."
 msgstr "ZIP ファイルが途中までしかアップロードされませんでした。もう一度お試しください。"
 
 #. translators: %d: PHP upload error code.
-#: includes/class-l2dsis-sequences.php:1046
+#: includes/class-l2dsis-sequences.php:1170
 #, php-format
 msgid "The ZIP file could not be uploaded (error code %d)."
 msgstr "ZIP ファイルをアップロードできませんでした(エラーコード %d)。"
@@ -380,3 +379,17 @@ msgstr "キャンバス"
 msgctxt "block keyword"
 msgid "animation"
 msgstr "アニメーション"
+
+#: includes/class-l2dsis-sequences.php:473
+msgid "Could not create the folder for image sequences in the uploads folder."
+msgstr "uploads フォルダーに画像シーケンス用のフォルダーを作成できませんでした。"
+
+#: includes/class-l2dsis-sequences.php:486
+msgid "Another import for this sequence is in progress. The current frames were kept. Try again later."
+msgstr "このシーケンスは別の取り込みの途中です。今のコマはそのまま残しました。少し待ってからもう一度お試しください。"
+
+#. translators: %s: maximum number of pixels.
+#: includes/class-l2dsis-sequences.php:758
+#, php-format
+msgid "The images in the ZIP file have more pixels in total than the limit (%s pixels). The current frames were kept."
+msgstr "ZIP ファイルの画像の画素数の合計が上限(%s ピクセル)を超えています。今のコマはそのまま残しました。"

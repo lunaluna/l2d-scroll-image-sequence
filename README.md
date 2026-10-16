@@ -47,6 +47,7 @@ GitHub の Release に新しい版が出ると、管理画面の「プラグイ�
   | 1 コマの大きさ | 10MB |
   | 1 コマの画素数(幅 × 高さ) | 16,000,000(16 メガピクセル) |
   | コマの合計の大きさ | 100MB |
+  | コマの画素数の合計 | 500,000,000(5 億画素) |
   | アップロードできる ZIP の大きさ | サーバーの設定(`upload_max_filesize`・`post_max_size`)に従う |
 
   どれかを超えると取り込みは止まり、それまでのコマはそのまま残ります。
@@ -102,6 +103,7 @@ GitHub の Release に新しい版が出ると、管理画面の「プラグイ�
 - **JS が動かないとき**も、固定しない表示になります(1 コマ目の画像と中身)
 - OS の設定で**「視差効果を減らす」**(`prefers-reduced-motion: reduce`)をオンにしている人には、固定もコマの動きも付けず、最後のコマの静止画を見せます。読み込む画像も最後の 1 枚だけです
 - コマの読み込みは、セクションが画面の 2 つ分手前まで近づいたときに始まります。ページ全体で同時に 6 件ずつ、今の位置に近いコマから読みます。まだ届いていないコマは、届いている中でいちばん近いコマで代わりに描きます
+- ブラウザのメモリを使いすぎないよう、一度に持つコマは今の位置の前後だけです。ページ全体で、デコードした画像の画素数の合計が 2 億画素(RGBA で約 800MB)に収まる枚数を、ページの中のブロックの数で分けます(例: ブロックが 2 つで、コマが 2048 × 1152 なら、1 つあたり約 42 コマ)。離れたコマは手放し、戻ってきたらブラウザのキャッシュから読み直します
 
 ## テーマで調整する
 
@@ -166,6 +168,7 @@ SP で移したあとのブロックだけに CSS を当てたいときは、`.l
 | `l2dsis_max_frame_bytes` | 1 コマの大きさの上限(バイト) | `10 * MB_IN_BYTES` |
 | `l2dsis_max_frame_pixels` | 1 コマの画素数(幅 × 高さ)の上限 | `16000000` |
 | `l2dsis_max_total_bytes` | コマの合計の大きさの上限(バイト) | `100 * MB_IN_BYTES` |
+| `l2dsis_max_total_pixels` | コマの画素数の合計の上限 | `500000000` |
 
 ```php
 // 例: SP の扱いにする幅を 768px にする.
@@ -183,6 +186,8 @@ add_filter(
 
 - **コマの画像は、`wp-content/uploads/l2d-scroll-image-sequence/{投稿 ID}/frames/` に、公開の URL で置かれます。** シーケンスを下書きや非公開にしても、URL を知っていれば画像そのものは取れます。人に見せられない画像には使わないでください
 - シーケンスはデータベースと uploads にだけあります。別のサイト(本番など)へ運ぶときは、「Download frames as ZIP」で取った ZIP を、運び先の「Image Sequences」で上げ直してください。投稿 ID が変わるので、ブロックでシーケンスを選び直す必要があります
+- 同じシーケンスに、2 つの取り込みを同時に行うことはできません。後から始めた方は「別の取り込みの途中です」と断られ、今のコマはそのまま残ります。少し待ってから上げ直してください。この排他の仕組みは PHP の `flock()` を使うので、NFS などのネットワークのファイルシステムでは効かないことがあります
+- 編集画面がシーケンスの一覧を取るときは、全件を読み、それぞれのフォルダを調べます。シーケンスは数件から数十件程度の運用を想定しています
 - マルチサイトでは、サイトごとにシーケンスを登録します
 
 ## 無効化・削除したとき
@@ -190,7 +195,7 @@ add_filter(
 - **無効化**: データは何も消しません。ページに置いたブロックの中身(見出しなど)は、普通のブロックとして表示されます(固定とコマは出ません)
 - **削除**(「プラグイン」の画面で「削除」): このプラグインが作ったデータをすべて消します。**元に戻せません**
   - 「Image Sequences」の投稿(ゴミ箱・下書きを含む)
-  - `wp-content/uploads/l2d-scroll-image-sequence/`(コマの画像)
+  - `wp-content/uploads/l2d-scroll-image-sequence/`(コマの画像と、取り込みの排他に使うファイル)
   - お知らせの一時データと、更新の確認のキャッシュ
 
   コマの画像を残したいときは、削除の前に「Download frames as ZIP」で取っておいてください。ページに置いたブロックは本文に残り、中身だけが表示されます。
@@ -208,8 +213,15 @@ npm run build
 # lint
 npm run lint:js
 npm run lint:css
-composer lint   # phpcs(WordPress Coding Standards)
+composer lint      # phpcs(WordPress Coding Standards)
+
+# テスト・静的解析
+npm run test:unit  # Vitest(src/sequence/test/. コマの選び方・読み方・持ち方の判断)
+composer test      # PHPUnit(tests/. WordPress のテストスイートは使わず、必要な関数だけを置き換える)
+composer analyse   # PHPStan(level 5)
 ```
+
+- CI(`.github/workflows/ci.yml`)は、`main` への push と PR で、PHP の構文(7.4〜8.4)・phpcs・PHPStan・PHPUnit・JS と CSS の lint・Vitest・`build/` が最新か・Plugin Check を確かめます
 
 - `build/` は Git に入れています。リリースの ZIP は、作業ツリーを `.distignore` で絞って作り、ビルドの工程を持たないためです。`src/` を変えたら、`npm run build` のあとで `build/` も一緒にコミットしてください
 - 配布の ZIP は `bash bin/build-zip.sh` で作れます(`l2d-scroll-image-sequence.{版}.zip`)
