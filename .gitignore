@@ -37,3 +37,6 @@ node_modules/
 
 # Claude Code のプロジェクト設定(許可の設定などマシン固有のパスを含む)
 .claude/
+
+# PHPUnit の実行結果のキャッシュ
+/.phpunit.result.cache

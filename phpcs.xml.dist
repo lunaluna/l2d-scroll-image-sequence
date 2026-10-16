@@ -7,6 +7,7 @@
 	<exclude-pattern>/node_modules/*</exclude-pattern>
 	<exclude-pattern>/languages/*</exclude-pattern>
 	<exclude-pattern>/lib/*</exclude-pattern>
+	<exclude-pattern>/tests/*</exclude-pattern>
 	<!-- build/ は src/ の PHP をビルドでコピーしたもの. src/ 側を検査する. -->
 	<exclude-pattern>/build/*</exclude-pattern>
 

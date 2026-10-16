@@ -1,0 +1,18 @@
+# PHPStan の設定(composer analyse).
+#
+# level 5 と WordPress 用の拡張は、参照元の forced-auto-update-controller にそろえた.
+# src/sequence/render.php(と build/ のコピー)は、WordPress が $attributes・$content・$block を渡して
+# require するファイルで、単体では「未定義の変数」と誤って指摘されるので調べない.
+# lib/l2d-updater/ は取り込んだライブラリなので、ライブラリのリポジトリ側で調べる.
+parameters:
+	level: 5
+	paths:
+		- l2d-scroll-image-sequence.php
+		- includes
+		- uninstall.php
+	excludePaths:
+		- vendor/*
+		- lib/*
+
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
