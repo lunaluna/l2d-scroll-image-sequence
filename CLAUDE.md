@@ -17,9 +17,9 @@
 ## 確認用サイト
 
 - <http://alpine2026.local/>(A290 のページは `/model/a290/`)
-- `app/public/wp-content/plugins/l2d-scroll-image-sequence` は、このリポジトリへの**シンボリックリンク**
-  - このプラグインに `wp plugin install --force`・`wp plugin delete`・管理画面の「削除」を使わない. リンク先のこのリポジトリが消える
-  - 自己更新の動作確認もシンボリックリンクのままでは行わない(更新処理が古いフォルダを消すため). テスト用のサイトにコピーで入れる
+- `app/public/wp-content/plugins/l2d-scroll-image-sequence` は、Release の ZIP で入れた**普通のフォルダ**(2026-10-23 に確認. 開発の初めはこのリポジトリへのシンボリックリンクだったが、1.0.0 の公開後に ZIP で入れ直されていた)
+  - このリポジトリの変更は、サイトに自動では届かない. ブランチの内容を確かめるときは、プラグインのルートで `bash bin/build-zip.sh` を実行して `l2d-scroll-image-sequence.{版}.zip` を作り(`.gitignore` で除外. 中の `mktemp -d` がサンドボックスで止まるので、サンドボックスの外で動かす)、管理画面の「プラグインのアップロード」で「現在のものをアップロードしたもので置き換える」を選ぶ
+  - 置き換えや削除の前には、`ls -la` でシンボリックリンクに戻っていないかを確かめる. リンクだったら `wp plugin install --force`・`wp plugin delete`・管理画面の「削除」・アップロードでの置き換えを使わない. リンク先のこのリポジトリが消える
 
 ## 開発の決まり
 
