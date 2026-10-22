@@ -3,7 +3,7 @@
   "apiVersion": 3,
   "name": "l2d-scroll-image-sequence/sequence",
   "version": "1.0.0",
-  "title": "Scroll Image Sequence",
+  "title": "Scroll Image Sequence Block",
   "category": "media",
   "icon": "images-alt2",
   "description": "Plays an image sequence on a canvas in sync with page scroll while the section is pinned.",

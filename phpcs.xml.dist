@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <ruleset name="L2dScrollImageSequence">
-	<description>Coding standards for Scroll Image Sequence.</description>
+	<description>Coding standards for Scroll Image Sequence Block.</description>
 
 	<file>.</file>
 	<exclude-pattern>/vendor/*</exclude-pattern>

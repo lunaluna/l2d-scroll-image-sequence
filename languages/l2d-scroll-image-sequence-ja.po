@@ -1,33 +1,23 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Scroll Image Sequence 1.0.0\n"
+"Project-Id-Version: Scroll Image Sequence Block 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/lunaluna/l2d-scroll-image-sequence/issues\n"
 "Last-Translator: lunaluna_dev\n"
 "Language-Team: Japanese\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-16T06:29:22+00:00\n"
-"PO-Revision-Date: 2026-10-16 10:30+0900\n"
+"POT-Creation-Date: 2026-10-22T19:47:37+00:00\n"
+"PO-Revision-Date: 2026-10-23 04:50+0900\n"
 "Language: ja\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: l2d-scroll-image-sequence\n"
 
-#. Plugin Name of the plugin
-#: l2d-scroll-image-sequence.php
-msgid "Scroll Image Sequence"
-msgstr ""
-
 #. Plugin URI of the plugin
 #: l2d-scroll-image-sequence.php
 msgid "https://github.com/lunaluna/l2d-scroll-image-sequence"
 msgstr ""
-
-#. Description of the plugin
-#: l2d-scroll-image-sequence.php
-msgid "Plays an image sequence on a canvas in sync with page scroll while the section is pinned."
-msgstr "セクションを画面に固定し、スクロールに合わせて連番の画像(画像シーケンス)を canvas に描きます。"
 
 #. Author of the plugin
 #: l2d-scroll-image-sequence.php
@@ -266,12 +256,6 @@ msgstr "ZIP ファイルが途中までしかアップロードされません�
 msgid "The ZIP file could not be uploaded (error code %d)."
 msgstr "ZIP ファイルをアップロードできませんでした(エラーコード %d)。"
 
-#. translators: 1: required PHP version, 2: required WordPress version, 3: current PHP version, 4: current WordPress version.
-#: includes/functions-activation.php:36
-#, php-format
-msgid "Scroll Image Sequence requires PHP %1$s or higher and WordPress %2$s or higher. You have PHP %3$s and WordPress %4$s."
-msgstr "Scroll Image Sequence には PHP %1$s 以上と WordPress %2$s 以上が必要です。お使いの環境は PHP %3$s・WordPress %4$s です。"
-
 #: includes/functions-activation.php:45
 msgid "Plugin Activation Error"
 msgstr "プラグインの有効化エラー"
@@ -351,11 +335,6 @@ msgid "Select an image sequence in the block settings."
 msgstr "ブロックの設定で画像シーケンスを選んでください。"
 
 #: build/sequence/block.json
-msgctxt "block title"
-msgid "Scroll Image Sequence"
-msgstr ""
-
-#: build/sequence/block.json
 msgctxt "block description"
 msgid "Plays an image sequence on a canvas in sync with page scroll while the section is pinned."
 msgstr "セクションを画面に固定し、スクロールに合わせて連番の画像(画像シーケンス)を canvas に描きます。"
@@ -393,3 +372,24 @@ msgstr "このシーケンスは別の取り込みの途中です。今のコマ
 #, php-format
 msgid "The images in the ZIP file have more pixels in total than the limit (%s pixels). The current frames were kept."
 msgstr "ZIP ファイルの画像の画素数の合計が上限(%s ピクセル)を超えています。今のコマはそのまま残しました。"
+
+#. Plugin Name of the plugin
+#: l2d-scroll-image-sequence.php
+msgid "Scroll Image Sequence Block"
+msgstr ""
+
+#. Description of the plugin
+#: l2d-scroll-image-sequence.php
+msgid "Provides a block that plays an image sequence on a canvas in sync with page scroll while the section is pinned."
+msgstr "セクションを画面に固定し、スクロールに合わせて連番の画像(画像シーケンス)を canvas に描くブロックを提供します。"
+
+#. translators: 1: required PHP version, 2: required WordPress version, 3: current PHP version, 4: current WordPress version.
+#: includes/functions-activation.php:36
+#, php-format
+msgid "Scroll Image Sequence Block requires PHP %1$s or higher and WordPress %2$s or higher. You have PHP %3$s and WordPress %4$s."
+msgstr "Scroll Image Sequence Block には PHP %1$s 以上と WordPress %2$s 以上が必要です。お使いの環境は PHP %3$s・WordPress %4$s です。"
+
+#: build/sequence/block.json
+msgctxt "block title"
+msgid "Scroll Image Sequence Block"
+msgstr ""
