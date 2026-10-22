@@ -3,7 +3,7 @@ Contributors: lunaluna_dev
 Tags: block, image sequence, scroll, canvas, animation
 Requires at least: 6.7
 Tested up to: 7.1.3
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -83,6 +83,11 @@ No. The later import is rejected with "Another import for this sequence is in pr
 Deactivating the plugin keeps all data. Deleting the plugin removes all image sequences (including drafts and trashed ones), the frame images in `wp-content/uploads/l2d-scroll-image-sequence/`, and the plugin's transients. This cannot be undone. Blocks in your posts stay in the content, and only their inner blocks are shown.
 
 == Changelog ==
+
+= 1.0.1 =
+* Renamed the plugin and the block to "Scroll Image Sequence Block". The plugin slug and the block name stay the same, so existing blocks keep working.
+* Described the block in the readme.
+* Tested up to WordPress 7.1.3.
 
 = 1.0.0 =
 * Initial release.
