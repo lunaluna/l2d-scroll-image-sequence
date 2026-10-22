@@ -1,6 +1,6 @@
-# Scroll Image Sequence
+# Scroll Image Sequence Block
 
-スクロールに合わせて、連番の画像(コマ)を canvas に描く WordPress のブロックプラグインです。
+スクロールに合わせて、連番の画像(コマ)を canvas に描くブロックを提供する WordPress のプラグインです。
 
 ブロックを置いたセクションは、スクロールしているあいだ画面に固定されます。そのあいだ、スクロールの量に合わせてコマが進みます。車が回る、部品がばらける、といった「動画のような動き」を、スクロールで前後に操作できる形で見せられます。
 
@@ -87,7 +87,7 @@ SP 用のシーケンス(ブロックの「Sequence for small screens」で選�
 
 ### 3. ブロックを置く
 
-1. 投稿やページの編集画面で、ブロック「**Scroll Image Sequence**」(カテゴリー「メディア」)を置きます
+1. 投稿やページの編集画面で、ブロック「**Scroll Image Sequence Block**」(カテゴリー「メディア」)を置きます
 2. 右のサイドバーで、表示するシーケンスを選びます
 3. ブロックの中に、コマの上に重ねたい見出しや段落などのブロックを入れます
 
@@ -141,7 +141,7 @@ SP 用のシーケンス(ブロックの「Sequence for small screens」で選�
 
 ```text
 グループ(テーマのクラス. 例: my-section)
-└ Scroll Image Sequence
+└ Scroll Image Sequence Block
    ├ 見出し
    └ グループ(l2dsis-reveal l2dsis-after-mobile)
 ```

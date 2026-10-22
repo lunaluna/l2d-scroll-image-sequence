@@ -34,7 +34,7 @@ function l2dsis_check_environment() {
 			sprintf(
 				/* translators: 1: required PHP version, 2: required WordPress version, 3: current PHP version, 4: current WordPress version. */
 				esc_html__(
-					'Scroll Image Sequence requires PHP %1$s or higher and WordPress %2$s or higher. You have PHP %3$s and WordPress %4$s.',
+					'Scroll Image Sequence Block requires PHP %1$s or higher and WordPress %2$s or higher. You have PHP %3$s and WordPress %4$s.',
 					'l2d-scroll-image-sequence'
 				),
 				esc_html( $required_php_version ),

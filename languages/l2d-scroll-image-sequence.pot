@@ -2,21 +2,21 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Scroll Image Sequence 1.0.0\n"
+"Project-Id-Version: Scroll Image Sequence Block 1.0.1\n"
 "Report-Msgid-Bugs-To: https://github.com/lunaluna/l2d-scroll-image-sequence/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-16T06:29:22+00:00\n"
+"POT-Creation-Date: 2026-10-22T19:49:53+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: l2d-scroll-image-sequence\n"
 
 #. Plugin Name of the plugin
 #: l2d-scroll-image-sequence.php
-msgid "Scroll Image Sequence"
+msgid "Scroll Image Sequence Block"
 msgstr ""
 
 #. Plugin URI of the plugin
@@ -26,7 +26,7 @@ msgstr ""
 
 #. Description of the plugin
 #: l2d-scroll-image-sequence.php
-msgid "Plays an image sequence on a canvas in sync with page scroll while the section is pinned."
+msgid "Provides a block that plays an image sequence on a canvas in sync with page scroll while the section is pinned."
 msgstr ""
 
 #. Author of the plugin
@@ -286,7 +286,7 @@ msgstr ""
 #. translators: 1: required PHP version, 2: required WordPress version, 3: current PHP version, 4: current WordPress version.
 #: includes/functions-activation.php:36
 #, php-format
-msgid "Scroll Image Sequence requires PHP %1$s or higher and WordPress %2$s or higher. You have PHP %3$s and WordPress %4$s."
+msgid "Scroll Image Sequence Block requires PHP %1$s or higher and WordPress %2$s or higher. You have PHP %3$s and WordPress %4$s."
 msgstr ""
 
 #: includes/functions-activation.php:45
@@ -369,7 +369,7 @@ msgstr ""
 
 #: build/sequence/block.json
 msgctxt "block title"
-msgid "Scroll Image Sequence"
+msgid "Scroll Image Sequence Block"
 msgstr ""
 
 #: build/sequence/block.json

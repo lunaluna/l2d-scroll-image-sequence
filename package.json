@@ -1,6 +1,6 @@
 {
 	"name": "l2d-scroll-image-sequence",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Plays an image sequence on a canvas in sync with page scroll while the section is pinned.",
 	"author": "The WordPress Contributors",
 	"license": "GPL-2.0-or-later",

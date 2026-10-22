@@ -1,20 +1,28 @@
-=== Scroll Image Sequence ===
+=== Scroll Image Sequence Block ===
 Contributors: lunaluna_dev
 Tags: block, image sequence, scroll, canvas, animation
 Requires at least: 6.7
-Tested up to: 7.1
-Stable tag: 1.0.0
+Tested up to: 7.1.3
+Stable tag: 1.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Plays an image sequence on a canvas in sync with page scroll while the section is pinned.
+Provides a block that plays an image sequence on a canvas in sync with page scroll while the section is pinned.
 
 == Description ==
 
-Scroll Image Sequence adds a block that pins its section to the viewport and
+Scroll Image Sequence Block provides a block for the block editor. The block pins its section to the viewport and
 draws an image sequence (numbered frames) on a canvas as the visitor scrolls.
 Visitors can scrub a video-like animation back and forth with the scroll.
+
+= Blocks =
+
+This plugin provides 1 block.
+
+* **Scroll Image Sequence Block** (category: Media) - Plays an image sequence on a canvas in sync with page scroll while the section is pinned. Choose a sequence for large screens and, optionally, one for small screens, then put the blocks you want to show over the frames (headings, paragraphs, groups) inside the block. Settings: "Sequence", "Sequence for small screens", "Scroll length (× screen height)" and "Reveal point", and under "Small screens", "Scroll length (× screen height)" and "Minimum frame height".
+
+= Features =
 
 * A regular block for the block editor. No other plugin (such as ACF) is required.
 * Upload frames as a ZIP file in the "Image Sequences" admin screen.
@@ -39,7 +47,7 @@ https://github.com/lunaluna/l2d-scroll-image-sequence
 To use it:
 
 1. Go to "Image Sequences" > "Add New Image Sequence", enter a title, choose a ZIP file of frames in the "Frames" box, and publish.
-2. Add the "Scroll Image Sequence" block to a post or page, and choose the sequence in the block settings.
+2. Add the "Scroll Image Sequence Block" block to a post or page, and choose the sequence in the block settings.
 3. Put the blocks you want to show over the frames inside the block.
 
 == Frequently Asked Questions ==
@@ -75,6 +83,11 @@ No. The later import is rejected with "Another import for this sequence is in pr
 Deactivating the plugin keeps all data. Deleting the plugin removes all image sequences (including drafts and trashed ones), the frame images in `wp-content/uploads/l2d-scroll-image-sequence/`, and the plugin's transients. This cannot be undone. Blocks in your posts stay in the content, and only their inner blocks are shown.
 
 == Changelog ==
+
+= 1.0.1 =
+* Renamed the plugin and the block to "Scroll Image Sequence Block". The plugin slug and the block name stay the same, so existing blocks keep working.
+* Described the block in the readme.
+* Tested up to WordPress 7.1.3.
 
 = 1.0.0 =
 * Initial release.
