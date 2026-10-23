@@ -106,8 +106,11 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          # mise.toml の node と同じ版にする.
-          node-version: '24.22.0'
+          # mise.toml の node と同じメジャー版にする. パッチまで固定せず、24 系の最新を使う
+          # (固定するとセキュリティ修正が自動で入らない. Dependabot も node-version は更新しない).
+          node-version: '24'
+          # 既定の false だと、ランナーに入っている少し古い 24.x がそのまま使われる.
+          check-latest: true
           cache: npm
 
       - name: Install npm dependencies
