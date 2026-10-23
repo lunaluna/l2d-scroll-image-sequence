@@ -1,2 +1,4 @@
+# node はパッチまで固定せず、24 系の最新を使う(CI の setup-node の node-version: '24' とそろえる).
+# 手元の版は自動では上がらないので、セキュリティ修正が出たら mise upgrade node で上げる.
 [tools]
-node = "24.22.0"
+node = "24"

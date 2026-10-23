@@ -89,7 +89,9 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24.22.0'
+          # ci.yml と同じ. 配布する ZIP を脆弱な版の Node でビルドしないよう、24 系の最新を使う.
+          node-version: '24'
+          check-latest: true
           cache: npm
 
       - name: Install npm dependencies
